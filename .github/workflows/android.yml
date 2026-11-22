@@ -6,7 +6,7 @@ on:
     tags: ['android-*']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -53,3 +53,9 @@ jobs:
           path: |
             SlimStory-*-unsigned.apk
             apksigner.jar
+      - name: Положить в ветку apk (для подписи)
+        run: |
+          mkdir out && cp SlimStory-*-unsigned.apk apksigner.jar out/ && cd out
+          git init -q -b apk && git add -A
+          git -c user.name="github-actions" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "APK $VER (не подписан)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" apk
