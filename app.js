@@ -46,6 +46,7 @@ const dk = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}
 const kd = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
 const addD = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const TODAY = dk(new Date());
+const GL = () => Math.max(50, Math.round((S.waterGoal || 2000) / 8 / 10) * 10); // стакан = норма / 8
 const dTitle = k => { const d = kd(k); return `${WD[d.getDay()]}, ${d.getDate()} ${MON[d.getMonth()]}`; };
 
 // ---------- данные пользователя ----------
@@ -59,7 +60,7 @@ function fresh() {
   return {
     name: P.name || 'Я', login: '', ava: {t: 'l'},
     goal: {k: n.kc, p: n.p, f: n.f, c: n.c, w: tw, start: w},
-    bjuMode: 'g', mealsOn: {b: 1, l: 1, d: 1, s: 1}, sync: {apple: 0, android: 0}, glass: 250, waterGoal: 2000,
+    bjuMode: 'g', mealsOn: {b: 1, l: 1, d: 1, s: 1}, sync: {apple: 0, android: 0}, glass: 250, waterGoal: P.water || 2000,
     favs: [], rfav: [], my: [], recent: [],
     rover: {}, myRecipes: [], days: {}, weights: [{d: TODAY, w}], diet: null, dEdit: {},
     home: [],
@@ -70,9 +71,25 @@ function blank() { return {meals: {b: [], l: [], d: [], s: []}, ml: 0}; }
 function load() { try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) { S = null; } if (!S || !S.days) S = fresh(); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function day(k) { return S.days[k] || (S.days[k] = blank()); }
-function entryF(f, g, extra) { const r = g / 100; return Object.assign({n: f.n, i: f.i, g, k: f.k * r, p: f.p * r, f: f.f * r, c: f.c * r}, f.kind ? {kind: f.kind, pid: f.id} : {}, extra || {}); }
+function entryF(f, g, extra) { const r = g / 100; return Object.assign({n: f.mk ? `${f.n} «${f.mk}»` : f.n, i: f.i, g, k: f.k * r, p: f.p * r, f: f.f * r, c: f.c * r}, f.kind ? {kind: f.kind, pid: f.id} : {}, extra || {}); }
 function sumE(list) { return list.reduce((a, e) => ({k: a.k + e.k, p: a.p + e.p, f: a.f + e.f, c: a.c + e.c}), {k: 0, p: 0, f: 0, c: 0}); }
 function dayTot(k) { const d = day(k); return sumE([].concat(...MEALS.map(m => d.meals[m.id] || []))); }
+
+// ---------- поиск: ё = е, похожие написания (choco pie = чокопай) ----------
+const nz = s => String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/[«»"'`.,!?()%\-–—_/]+/g, ' ').replace(/\s+/g, ' ').trim();
+const TRL = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ж:'7',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'4',ш:'6',щ:'6',ъ:'',ы:'y',ь:'',э:'e',ю:'u',я:'a'};
+function sk(s) { // «скелет» слова: латиница, без гласных и пробелов
+  let t = nz(s).replace(/[а-я]/g, c => TRL[c] ?? c);
+  t = t.replace(/sch|tch|ch/g, '4').replace(/sh/g, '6').replace(/zh|j/g, '7').replace(/ph/g, 'f').replace(/ck|q/g, 'k').replace(/x/g, 'ks').replace(/w/g, 'v')
+    .replace(/c(?=[eiy])/g, 's').replace(/c/g, 'k').replace(/kh/g, 'h').replace(/\s/g, '').replace(/(.)\1+/g, '$1').replace(/[aeiouy]/g, '');
+  return t;
+}
+function fits(name, q) { // подходит ли название под запрос
+  const a = nz(name), b = nz(q); if (!b) return true; if (a.includes(b)) return true;
+  if (b.replace(/\s/g, '').length < 4) return false;
+  const kb = sk(b); return kb.length >= 3 && sk(a).includes(kb);
+}
+const hay = f => (f.mk ? f.mk + ' ' : '') + f.n;
 let sel = TODAY; // выбранный день на главной
 
 // ---------- оболочка ----------
@@ -159,8 +176,8 @@ function scrHome() {
     const sub = Lm.length ? Lm.map(e => e.n).join(', ') : `Рекомендуется ${m.rec} ккал`;
     return `<button class="meal" onclick="go('#/add/${m.id}')"><div class="mi" style="background:${m.bg}">${mic(m)}</div><div class="mt"><b>${m.n}</b><small>${esc(sub)}</small></div>${Lm.length ? `<span class="mk">${N(s.k)} ккал</span>` : `<span class="pbtn">${IC.plus()}</span>`}</button>`;
   }).join('');
-  const n = Math.max(1, Math.round(S.waterGoal / S.glass)), ml = d.ml || 0;
-  const glasses = [...Array(n)].map((_, i) => `<button onclick="tapWater(${i})" aria-label="Стакан ${i + 1}"><img src="${I(glassImg((ml - i * S.glass) / S.glass))}" class="${popW && i === Math.ceil(ml / S.glass) - 1 ? 'pop' : ''}" alt=""></button>`).join('');
+  const n = 8, gl = GL(), ml = d.ml || 0;
+  const glasses = [...Array(n)].map((_, i) => `<button onclick="tapWater(${i})" aria-label="Стакан ${i + 1}"><img src="${I(glassImg((ml - i * gl) / gl))}" class="${popW && i === Math.ceil(ml / gl) - 1 ? 'pop' : ''}" alt=""></button>`).join('');
   const out = `<div class="scr anim" id="sc">
   <div class="hello"><div><small>${WDF[now.getDay()]}, ${now.getDate()} ${MON[now.getMonth()]}</small><b>Привет, ${esc(S.name)}!</b></div><div style="display:flex;gap:10px;align-items:center"><button class="calbtn ${calOpen ? 'on' : ''}" onclick="calOpen=!calOpen;calM=sel.slice(0,7);render(true)" aria-label="Календарь">${SV('<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="8" cy="14" r=".6" fill="currentColor"/><circle cx="12" cy="14" r=".6" fill="currentColor"/><circle cx="16" cy="14" r=".6" fill="currentColor"/><circle cx="8" cy="17" r=".6" fill="currentColor"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>', calOpen ? '#fff' : '#7c5cff', 2.2, 22)}</button><button onclick="go('#/me')" aria-label="Я">${avaHTML(46)}</button></div></div>
   ${calOpen ? calHTML() : ''}
@@ -172,7 +189,7 @@ function scrHome() {
   <div class="sec">Приёмы пищи</div>${meals}
   <div class="sec">Ежедневные трекеры</div>
   <div class="trk"><div class="trh"><h3>Вода</h3><button class="wl" onclick="waterSheet()">${L1(ml)} из ${L1(S.waterGoal)} л ${IC.pen('#7c5cff', 13)}</button></div>
-  <div class="trow w">${glasses}<button class="tplus w" onclick="addWater(100)" aria-label="Добавить 100 мл">${IC.plus('#7c5cff', 18)}<small>100 мл</small></button></div></div>
+  <div class="trow w">${glasses}<button class="tplus w" onclick="addWater(${gl})" aria-label="Добавить ${gl} мл">${IC.plus('#7c5cff', 18)}<small>${gl} мл</small></button></div></div>
   <div class="trk"><h3>Овощи</h3>${trRow('veg')}</div>
   <div class="trk"><h3>Фрукты</h3>${trRow('fruit')}</div>
   </div>${nav(0)}`;
@@ -181,7 +198,7 @@ function scrHome() {
 }
 let popW = 0, popT = '';
 function tapWater(i) {
-  const d = day(sel), g = S.glass, ml = d.ml || 0;
+  const d = day(sel), g = GL(), ml = d.ml || 0;
   d.ml = ml >= (i + 1) * g && ml < (i + 2) * g ? i * g : (i + 1) * g;
   popW = 1; save(); render(true);
 }
@@ -221,14 +238,14 @@ function calShift(d) { const [y, m] = calM.split('-').map(Number), x = new Date(
 let PK = null;
 function prodPick(kind, qq = '') {
   PK = {kind, q: qq};
-  const L = PRODUCE.filter(x => x.kind === kind && x.n.toLowerCase().includes(qq.toLowerCase()));
+  const L = PRODUCE.filter(x => x.kind === kind && fits(x.n, qq));
   sheet(`<div class="sh"><div><b>${kind === 'veg' ? 'Какой овощ?' : 'Какой фрукт или ягоду?'}</b></div></div>
   <div class="search" style="margin-top:12px">${IC.search}<input id="pq" placeholder="Найти или написать свой" value="${esc(qq)}" oninput="prodFilter(this.value)"></div>
   <div class="pgrid" id="pg">${prodGrid(L)}</div>
   <div style="padding:14px 20px 0"><button class="btn w" onclick="prodOwn()">${IC.pen('#7c5cff', 16)}&nbsp;Свой вариант</button></div>`, 'tall');
 }
 function prodGrid(L) { return L.length ? L.map(x => `<button class="pcell" onclick="prodQty('${x.id}')"><div class="circ"><img src="${I(x.i)}" alt=""></div><span>${x.n}</span></button>`).join('') : '<div class="empty" style="grid-column:1/-1">Не нашлось. Нажми «Свой вариант»</div>'; }
-function prodFilter(v) { $('#pg').innerHTML = prodGrid(PRODUCE.filter(x => x.kind === PK.kind && x.n.toLowerCase().includes(v.toLowerCase()))); }
+function prodFilter(v) { $('#pg').innerHTML = prodGrid(PRODUCE.filter(x => x.kind === PK.kind && fits(x.n, v))); }
 function prodQty(id) {
   const x = PD[id]; let g = x.g;
   const draw = () => { const r = g / 100; $('#pt').innerHTML = totHTML({k: x.k * r, p: x.p * r, f: x.f * r, c: x.c * r}); };
@@ -268,7 +285,7 @@ function togglePlus() {
   const big = MEALS.map(m => `<button onclick="closePlus();go('#/add/${m.id}')"><div class="circ"><img src="${I(m.img)}" alt=""></div><span>${m.n}</span></button>`);
   $('#phone').insertAdjacentHTML('beforeend', `<div class="plus-ov" onclick="if(event.target===this)closePlus(true)"><div class="plus-panel">
   <div class="title">Что добавить?</div>
-  <div class="arc s"><button class="circ" onclick="closePlus();weightSheet()" aria-label="Вес"><img src="${I('scale')}" alt=""></button><button class="circ" onclick="closePlus();addWater(${S.glass})" aria-label="Вода"><img src="${I('glass_100')}" alt=""></button><button class="circ" onclick="closePlus();prodPick('fruit')" aria-label="Фрукты"><img src="${I('tr_apple')}" alt=""></button></div>
+  <div class="arc s"><button class="circ" onclick="closePlus();weightSheet()" aria-label="Вес"><img src="${I('scale')}" alt=""></button><button class="circ" onclick="closePlus();addWater(${GL()})" aria-label="Вода"><img src="${I('glass_100')}" alt=""></button><button class="circ" onclick="closePlus();prodPick('fruit')" aria-label="Фрукты"><img src="${I('tr_apple')}" alt=""></button></div>
   <div class="b2">${big[0]}${big[1]}</div><div class="b2">${big[2]}${big[3]}</div>
   <div class="ic2"><button class="circ" onclick="closePlus();go('#/scan')" aria-label="Скриншот">${IC.cam('#fff', 24)}</button><button class="circ" onclick="closePlus();go('#/assistant')" aria-label="Голосом">${IC.mic('#fff', 24)}</button></div>
   </div></div>`);
@@ -297,7 +314,7 @@ function scrAdd(m) {
 }
 function foodTile(f, m) {
   const fav = S.favs.includes(f.id), src = f.brand === 'с упаковки' ? '<span class="src u">с упаковки</span>' : f.brand === 'изменено' ? '<span class="src e">изменено</span>' : '';
-  return `<div class="tile" onclick="qtySheet('${f.id}','${m}')"><div class="cp">${src}<img src="${I(f.i)}" alt=""><button class="heart" onclick="event.stopPropagation();favF('${f.id}')" aria-label="Избранное">${IC.heart(fav)}</button></div><b>${esc(f.n)}</b><small>${f.pn} · ${f.por} г</small><div class="tk"><span>${N(f.k * f.por / 100)} ккал</span><span class="pbtn">${IC.plus()}</span></div></div>`;
+  return `<div class="tile" onclick="qtySheet('${f.id}','${m}')"><div class="cp">${src}<img src="${I(f.i)}" alt=""><button class="heart" onclick="event.stopPropagation();favF('${f.id}')" aria-label="Избранное">${IC.heart(fav)}</button></div><b>${esc(f.n)}</b><small>${f.mk ? `<span class="mk">${esc(f.mk)}</span> · ` : ''}${f.pn} · ${f.por} г</small><div class="tk"><span>${N(f.k * f.por / 100)} ккал</span><span class="pbtn">${IC.plus()}</span></div></div>`;
 }
 function foodList(m) {
   const qq = addQ.trim().toLowerCase();
@@ -306,7 +323,7 @@ function foodList(m) {
     return `<div class="grid">${R.map(r => recTile(r, m)).join('')}</div>`;
   }
   let L;
-  if (qq) L = FOODS.concat(PRODUCE, S.my).filter(f => f.n.toLowerCase().includes(qq));
+  if (qq) L = FOODS.concat(PRODUCE, S.my).filter(f => fits(hay(f), qq));
   else if (addTab === 0) L = S.recent.map(id => FD[id] || S.my.find(x => x.id === id)).filter(Boolean);
   else if (addTab === 1) L = S.favs.map(id => FD[id] || S.my.find(x => x.id === id)).filter(Boolean);
   else L = S.my.concat(FOODS, PRODUCE);
@@ -328,7 +345,7 @@ function drawQty() {
     ? `<div style="display:flex;justify-content:center;margin-top:18px"><div class="step"><button onclick="QS.por=Math.max(.5,QS.por-.5);drawQty()">−</button><b style="font-size:40px;min-width:70px">${D1(QS.por)}</b><button onclick="QS.por+=.5;drawQty()">+</button></div></div><div class="muted" style="text-align:center;margin-top:6px">${f.pn} = ${f.por} г</div>`
     : `<div class="big-in"><input id="gin" type="number" inputmode="numeric" value="${Math.round(g)}" oninput="QS.g=Math.max(0,+this.value||0);updQty()"><span>г</span></div><div class="muted" style="text-align:center;margin-top:6px" id="qpor">≈ ${D1(g / f.por)} порции</div>
        <div class="presets">${[100, 150, 200, f.por].filter((v, i, a) => a.indexOf(v) === i).map(v => `<button class="pill ${Math.round(g) === v ? 'on' : ''}" onclick="QS.g=${v};drawQty()">${v} г</button>`).join('')}</div>`;
-  sheet(`<div class="sh"><img src="${I(f.i)}" alt=""><div><b>${esc(f.n)}</b><small>${f.pn} = ${f.por} г · ${N(f.k)} ккал в 100 г${QS.note ? ' · ' + QS.note : ''}</small></div></div>
+  sheet(`<div class="sh"><img src="${I(f.i)}" alt=""><div><b>${esc(f.n)}</b><small>${f.mk ? esc(f.mk) + ' · ' : ''}${f.pn} = ${f.por} г · ${N(f.k)} ккал в 100 г${QS.note ? ' · ' + QS.note : ''}</small></div></div>
   <div style="padding:14px 20px 0"><div class="seg"><button class="${QS.mode === 'p' ? 'on' : ''}" onclick="QS.mode='p';drawQty()">Порции</button><button class="${QS.mode === 'g' ? 'on' : ''}" onclick="QS.mode='g';QS.g=Math.round(${g});drawQty()">Граммы</button></div></div>
   ${body}<div class="tot" id="qtot">${totHTML({k: f.k * r, p: f.p * r, f: f.f * r, c: f.c * r})}</div>
   <div style="padding:18px 20px 0"><button class="btn" onclick="addQty()">Добавить ${M.v}</button></div>`);
@@ -384,7 +401,7 @@ function collList(name) { const tag = COLL[decodeURIComponent(name)], T = [].con
 function recFind(v) {
   const qq = v.trim().toLowerCase(), b = $('#rbody');
   if (!qq) { render(true); return; }
-  const R = RECIPES.concat(S.myRecipes).filter(r => r.n.toLowerCase().includes(qq));
+  const R = RECIPES.concat(S.myRecipes).filter(r => fits(r.n, qq));
   b.innerHTML = R.length ? `<div class="grid">${R.map(r => recTile(r)).join('')}</div>` : '<div class="empty">Ничего не нашлось</div>';
 }
 function scrColl(name) {
@@ -400,7 +417,7 @@ function ingSheet(target) {
   <div class="card" id="il" style="padding-top:2px;padding-bottom:2px">${ingList('')}</div>`, 'tall');
 }
 function ingList(qq) {
-  const L = Object.keys(ING).filter(k => ING[k][1] > 0 && k.toLowerCase().includes(qq.toLowerCase()));
+  const L = Object.keys(ING).filter(k => ING[k][1] > 0 && fits(k, qq));
   return L.map(k => `<button class="ing" style="width:100%;text-align:left" onclick="ingAdd(${q(k)})">${pic(ING[k][0], k, 40)}<div class="nm"><b>${esc(k)}</b><small>${ING[k][1]} ккал в 100 г</small></div><span class="pbtn">${IC.plus()}</span></button>`).join('') || '<div class="empty" style="margin:14px">Не нашлось</div>';
 }
 function ingAdd(k) {
@@ -699,7 +716,7 @@ function scrSettings() {
   ${row('Калории в день', N(G.k) + ' ккал', `numSheet('k','Калории в день','ккал',50)`)}${row('Белки', G.p + ' г', `numSheet('p','Белки в день','г',5)`)}${row('Жиры', G.f + ' г', `numSheet('f','Жиры в день','г',5)`)}${row('Углеводы', G.c + ' г', `numSheet('c','Углеводы в день','г',5)`)}${row('Желаемый вес', D1(G.w) + ' кг', `numSheet('w','Желаемый вес','кг',.5)`)}</div>
   <div class="sec">Как показывать</div><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;font-weight:800">БЖУ на главной<div class="seg" style="width:150px"><button class="${S.bjuMode === 'g' ? 'on' : ''}" onclick="S.bjuMode='g';save();render(true)">граммы</button><button class="${S.bjuMode === 'p' ? 'on' : ''}" onclick="S.bjuMode='p';save();render(true)">%</button></div></div></div>
   <div class="sec">Приёмы пищи</div><div class="card" style="padding-top:2px;padding-bottom:2px">${MEALS.map(m => `<div class="row"><span style="display:flex;align-items:center;gap:10px"><span class="ico" style="width:34px;height:34px;background:${m.bg}">${mic(m, 20)}</span>${m.n}</span>${sw(S.mealsOn[m.id], `S.mealsOn['${m.id}']=S.mealsOn['${m.id}']?0:1;save();render(true)`)}</div>`).join('')}</div>
-  <div class="sec">Трекеры</div><div class="card" style="padding-top:2px;padding-bottom:2px"><div class="row"><span>Стакан воды</span><div class="seg" style="width:150px"><button class="${S.glass === 250 ? 'on' : ''}" onclick="S.glass=250;save();render(true)">250 мл</button><button class="${S.glass === 500 ? 'on' : ''}" onclick="S.glass=500;save();render(true)">500 мл</button></div></div><button class="row" onclick="numSheetW()"><span>Норма воды</span><span class="v">${L1(S.waterGoal)} л</span></button><div class="row"><span>Овощи</span><span class="v">5 в день</span></div><div class="row"><span>Фрукты</span><span class="v">5 в день</span></div></div>
+  <div class="sec">Трекеры</div><div class="card" style="padding-top:2px;padding-bottom:2px"><div class="row"><span>Стакан воды</span><span class="v">${GL()} мл</span></div><button class="row" onclick="numSheetW()"><span>Норма воды</span><span class="v">${L1(S.waterGoal)} л</span></button><div class="row"><span>Овощи</span><span class="v">5 в день</span></div><div class="row"><span>Фрукты</span><span class="v">5 в день</span></div></div>
   <div class="sec">Синхронизация</div><div class="card" style="padding-top:2px;padding-bottom:2px"><div class="row"><div>Apple Здоровье<small>шаги и активность в калориях</small></div>${sw(S.sync.apple, `S.sync.apple=S.sync.apple?0:1;save();render(true);toast('Заработает в приложении')`)}</div><div class="row"><div>Health Connect (Android)<small>шаги и активность в калориях</small></div>${sw(S.sync.android, `S.sync.android=S.sync.android?0:1;save();render(true);toast('Заработает в приложении')`)}</div></div>
   <div style="padding:22px 20px 0"><button class="btn w" onclick="resetAll()">Начать прототип заново</button></div></div>`;
 }
@@ -710,7 +727,7 @@ function numSheet(key, title, unit, step) {
   <div style="padding:18px 20px 0"><button class="btn" id="nsb">Сохранить</button></div>`);
   $('#nsb').onclick = () => { S.goal[key] = v; save(); closeSheet(); render(true); };
 }
-function numSheetW() { let v = S.waterGoal; window._nw = d => { v = Math.max(500, v + d); $('#nwv').textContent = L1(v); }; sheet(`<div class="sh"><div><b>Норма воды</b></div></div><div style="display:flex;justify-content:center;margin-top:20px"><div class="step"><button onclick="_nw(-250)">−</button><b id="nwv" style="font-size:40px;min-width:110px">${L1(v)}</b><button onclick="_nw(250)">+</button></div></div><div class="muted" style="text-align:center">литра</div><div style="padding:18px 20px 0"><button class="btn" id="nwb">Сохранить</button></div>`); $('#nwb').onclick = () => { S.waterGoal = v; save(); closeSheet(); render(true); }; }
+function numSheetW() { let v = S.waterGoal; window._nw = d => { v = Math.max(500, v + d); $('#nwv').textContent = L1(v); }; sheet(`<div class="sh"><div><b>Норма воды</b></div></div><div style="display:flex;justify-content:center;margin-top:20px"><div class="step"><button onclick="_nw(-100)">−</button><b id="nwv" style="font-size:40px;min-width:110px">${L1(v)}</b><button onclick="_nw(100)">+</button></div></div><div class="muted" style="text-align:center">литра</div><div style="padding:18px 20px 0"><button class="btn" id="nwb">Сохранить</button></div>`); $('#nwb').onclick = () => { S.waterGoal = v; save(); closeSheet(); render(true); }; }
 function resetAll() { sheet(`<div class="sh"><div><b>Стереть все записи?</b><small>Прототип вернётся к началу</small></div></div><div style="display:flex;gap:10px;padding:18px 20px 0"><button class="btn w" onclick="closeSheet()">Отмена</button><button class="btn" onclick="try{localStorage.removeItem(KEY)}catch(e){};S=fresh();closeSheet();root('#/home');render()">Стереть</button></div>`); }
 
 const BODY = ['Талия', 'Бёдра', 'Грудь', 'Обхват бедра', 'Обхват руки', 'Процент жира'];
@@ -829,7 +846,7 @@ function scrLabelRes() {
   const fld = (l, id, v, u = '') => `<div><div class="muted" style="font-size:13px;margin-bottom:4px">${l}</div><label style="display:flex;align-items:center;background:#f6f3ff;border-radius:14px;padding:11px 14px;font-weight:800;font-size:16px"><input id="${id}" ${v === 'Название марки' ? 'placeholder="Например, Простоквашино"' : `value="${v}"`} style="flex:1;border:0;background:none;outline:0;font-weight:800;min-width:0">${u ? `<span class="muted">${u}</span>` : IC.pen()}</label></div>`;
   return `<div class="scr anim" style="padding-bottom:110px">${topb('Свой продукт', 'с этикетки')}
   <div class="card" style="display:flex;gap:12px;align-items:center"><div style="width:74px;height:90px;border-radius:12px;background:#f6f3ff;display:flex;align-items:center;justify-content:center;flex:none"><img src="${I('М1_Греческий йогурт')}" style="width:60px;height:60px;object-fit:contain" alt=""></div><div style="flex:1;min-width:0"><span class="ok">${IC.check()} Данные с упаковки</span><div style="margin-top:8px">${fld('Название', 'ln', 'Йогурт греческий 2%')}</div></div></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:12px">${fld('Марка', 'lb', 'Название марки')}<div class="g2" style="margin:0">${fld('Вес упаковки', 'lw', 140, 'г')}${fld('Порция', 'lp', 140, 'г')}</div></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">${fld('Марка *', 'lb', 'Название марки')}<div class="g2" style="margin:0">${fld('Вес упаковки', 'lw', 140, 'г')}${fld('Порция', 'lp', 140, 'г')}</div></div>
   <div class="sec">Пищевая ценность<span>в 100 г</span></div>
   <div class="card"><div class="g2" style="margin:0">${fld('Калории', 'lk', D1(f.k), 'ккал')}${fld('Белки', 'lpr', D1(f.p), 'г')}${fld('Жиры', 'lf', D1(f.f), 'г')}${fld('Углеводы', 'lc', D1(f.c), 'г')}</div></div></div>
   <div class="btns"><button class="btn w" onclick="back()">Переснять</button><button class="btn" onclick="labSave()">Сохранить</button></div>`;
@@ -837,7 +854,8 @@ function scrLabelRes() {
 function labSave() {
   const v = id => parseFloat(String($('#' + id).value).replace(',', '.')) || 0;
   const id = 'my' + Date.now();
-  S.my.unshift({id, n: $('#ln').value || 'Мой продукт', i: 'М1_Греческий йогурт', k: v('lk'), p: v('lpr'), f: v('lf'), c: v('lc'), por: v('lp') || 100, pn: '1 порция', brand: 'с упаковки'});
+  const mk = $('#lb').value.trim(); if (!mk) { toast('Напиши марку с упаковки'); $('#lb').focus(); return; }
+  S.my.unshift({id, mk, n: $('#ln').value || 'Мой продукт', i: 'М1_Греческий йогурт', k: v('lk'), p: v('lpr'), f: v('lf'), c: v('lc'), por: v('lp') || 100, pn: '1 порция', brand: 'с упаковки'});
   save(); toast('Продукт сохранён'); addTab = 2; back(2);
 }
 
@@ -845,7 +863,7 @@ function labSave() {
 function scrCafe(m) {
   const M = MEALS.find(x => x.id === m) || MEALS[0];
   return `<div class="scr anim">${topb('Кафе и рестораны', 'для ' + M.n.toLowerCase().replace('завтрак', 'завтрака').replace('обед', 'обеда').replace('ужин', 'ужина').replace('перекус', 'перекуса'))}
-  <div class="search">${IC.search}<input placeholder="Название кафе, ресторана, бара" oninput="document.querySelectorAll('[data-cafe]').forEach(e=>e.style.display=e.dataset.cafe.toLowerCase().includes(this.value.toLowerCase())?'':'none')"></div>
+  <div class="search">${IC.search}<input placeholder="Название кафе, ресторана, бара" oninput="document.querySelectorAll('[data-cafe]').forEach(e=>e.style.display=fits(e.dataset.cafe,this.value)?'':'none')"></div>
   <button class="rowlink" onclick="locSheet()" style="background:none;padding-left:0">${IC.pin}<b style="font-size:14px">Рядом с: ${esc(S.addr || 'ул. Ленина, 12')}</b><span></span><b style="color:#7c5cff;font-size:14px">Изменить</b></button>
   ${CAFES.map(c => `<button class="dl" data-cafe="${esc(c.n)}" onclick="go('#/cafem/${c.id}/${M.id}')"><div class="im" style="width:64px;height:64px;border-radius:18px"><img src="${I(c.i)}" alt=""></div><div class="tx"><b>${c.n}</b><small>${c.d} · ${c.km}</small></div>${IC.chev}</button>`).join('')}</div>`;
 }
@@ -931,7 +949,7 @@ if (!HAS) location.replace('start.html');
 else {
   load(); sel = TODAY;
   // анкету прошли заново: обновить норму и имя
-  try { const P = JSON.parse(localStorage.getItem('ss_start') || 'null'); if (P && P.norm && P.at && P.at !== S.startAt) { S.name = P.name || S.name; S.goal.k = P.norm.kc; S.goal.p = P.norm.p; S.goal.f = P.norm.f; S.goal.c = P.norm.c; if (P.goal === 'down') S.goal.w = +P.tw; S.startAt = P.at; save(); } } catch (e) {}
+  try { const P = JSON.parse(localStorage.getItem('ss_start') || 'null'); if (P && P.norm && P.at && P.at !== S.startAt) { S.name = P.name || S.name; S.goal.k = P.norm.kc; S.goal.p = P.norm.p; S.goal.f = P.norm.f; S.goal.c = P.norm.c; if (P.goal === 'down') S.goal.w = +P.tw; if (P.water) S.waterGoal = P.water; S.startAt = P.at; save(); } } catch (e) {}
   render();
 }
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

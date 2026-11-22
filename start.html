@@ -102,6 +102,7 @@ input{font:inherit;color:inherit}
 .res .row small{font-size:12px;font-weight:800;color:var(--mute)}
 .goal{display:flex;align-items:center;gap:12px;background:#fff;border-radius:20px;padding:14px 16px;margin-top:12px;text-align:left}
 .goal .oi{width:44px;height:44px;border-radius:50%;background:var(--mn);display:flex;align-items:center;justify-content:center;flex:none}
+.goal.wt .oi{background:#e3efff}
 .goal b{display:block;font-size:16px;font-weight:900}.goal small{font-size:13px;font-weight:700;color:var(--mute)}
 .note{font-size:12px;color:var(--mute2);font-weight:700;margin-top:14px;text-align:center}
 
@@ -142,6 +143,7 @@ const ICON={
  lock:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a49dbb" stroke-width="2" stroke-linecap="round"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>',
  phone:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a49dbb" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>',
  user:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a49dbb" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+ drop:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f8be0" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 01-12 0c0-4.5 6-11 6-11z"/></svg>',
  tick:'<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>',
 };
 
@@ -190,13 +192,16 @@ function numScr(i,key,q,unit,min,max,hint){
 }
 function bump(k,d,min,max){D[k]=Math.min(max,Math.max(min,(+D[k]||0)+d));$('#n').value=D[k]}
 function opt(key,val,icon,title,sub,two){
-  return `<button class="opt ${D[key]===val?'on':''}" onclick="D['${key}']='${val}';save();setTimeout(next,180);render()">
+  return `<button class="opt ${D[key]===val?'on':''}" onclick="pick(this,'${key}','${val}')">
   <span class="oi">${ICON[icon]}</span><span><b>${title}</b>${sub?`<small>${sub}</small>`:''}</span></button>`;
 }
 const ALL=['Молоко','Глютен','Орехи','Арахис','Яйца','Рыба','Морепродукты','Соя','Мёд','Цитрусы'];
-function tog(a){const i=D.allergy.indexOf(a);if(a==='none'){D.allergy=[]}else if(i>=0)D.allergy.splice(i,1);else D.allergy.push(a);save();render()}
+function tog(a){const i=D.allergy.indexOf(a);if(a==='none'){D.allergy=[]}else if(i>=0)D.allergy.splice(i,1);else D.allergy.push(a);save();document.querySelectorAll('.chips .chip:not(.add)').forEach(b=>{const v=b.dataset.v;b.classList.toggle('on',v==='none'?!D.allergy.length:D.allergy.includes(v))})}
 
-function finish(){D.norm=norm();D.at=Date.now();save();location.replace('./')}
+function finish(){D.norm=norm();D.water=water();D.at=Date.now();save();location.replace('./')}
+let busy=false;
+function pick(el,key,val){if(busy)return;busy=true;D[key]=val;save();el.parentNode.querySelectorAll('.opt').forEach(b=>b.classList.toggle('on',b===el));setTimeout(()=>{busy=false;next()},200)}
+function water(){const extra={run:300,fire:500}[D.act]||0;return Math.min(3500,Math.max(1500,Math.round((30*D.w+extra)/100)*100))}
 function render(){
   const P=$('#phone');let h='';
   if(step==='splash'){
@@ -216,6 +221,7 @@ function render(){
     h=`<div class="scr res">${qtop(Q.length)}<div class="q">${D.name?D.name+', твоя':'Твоя'} норма</div>
       <div class="big"><b>${r.kc.toLocaleString('ru-RU')}</b><small>ккал в день</small></div>
       <div class="row"><div><b>${r.p} г</b><small>белки</small></div><div><b>${r.f} г</b><small>жиры</small></div><div><b>${r.c} г</b><small>углеводы</small></div></div>
+      <div class="goal wt"><span class="oi">${ICON.drop}</span><span><b>${(water()/1000).toLocaleString('ru-RU')} л воды в день</b><small>8 стаканов по ${Math.round(water()/80)*10} мл</small></span></div>
       ${D.goal==='down'?`<div class="goal"><span class="oi">${ICON.flag}</span><span><b>${D.tw} кг к ${date}</b><small>примерно ${r.weeks} нед.</small></span></div>`:''}
       <div class="note">Это примерный расчёт. При болезнях посоветуйся с врачом.</div>
       <div class="sp"></div><button class="btn" onclick="finish()">Начать</button></div>`;
@@ -274,8 +280,8 @@ function render(){
       ${opt('act','run','run','Средне','3–5 тренировок в неделю')}
       ${opt('act','fire','fire','Много','каждый день')}</div></div>`;
     if(k==='allergy') h=`<div class="scr">${qtop(step)}<div class="q">Есть аллергия?</div><div class="qs">Не будем советовать эти продукты</div>
-      <div class="body"><div class="chips"><button class="chip ${D.allergy.length?'':'on'}" onclick="tog('none')">Нет</button>
-      ${ALL.map(a=>`<button class="chip ${D.allergy.includes(a)?'on':''}" onclick="tog('${a}')">${a}</button>`).join('')}
+      <div class="body"><div class="chips"><button class="chip ${D.allergy.length?'':'on'}" data-v="none" onclick="tog('none')">Нет</button>
+      ${ALL.map(a=>`<button class="chip ${D.allergy.includes(a)?'on':''}" data-v="${a}" onclick="tog('${a}')">${a}</button>`).join('')}
       <button class="chip add">+ Своё</button></div>
       <button class="btn" onclick="save();go('result')">Дальше</button></div></div>`;
   }
