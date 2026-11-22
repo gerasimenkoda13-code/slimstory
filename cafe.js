@@ -1,6 +1,6 @@
 'use strict';
 // ---------- кафе: рядом (OpenStreetMap) + меню сетей с КБЖУ + обычное кафе ----------
-// Данные карты: © участники OpenStreetMap (лицензия ODbL), поиск через Overpass API.
+// Данные карты: © участники OpenStreetMap (лицензия ODbL), поиск через Nominatim, запасной — Overpass API.
 let CHAINS = (typeof CHAIN_DATA !== 'undefined') ? CHAIN_DATA : [];
 let NEAR = null; try { NEAR = JSON.parse(localStorage.getItem('ss_near') || 'null'); } catch (e) {}
 let nearBusy = 0, cafeQ = '';
@@ -16,17 +16,33 @@ function ovFetch(q) {
       .catch(() => { if (--left === 0) { clearTimeout(t); bad(new Error('ovp')); } }));
   });
 }
+// поиск OpenStreetMap (Nominatim): быстрый, по запросам «кафе», «ресторан», «фастфуд» в квадрате вокруг
+async function nomFind(la, lo) {
+  const d = .012, vb = [lo - d * 1.8, la + d, lo + d * 1.8, la - d].join(','), out = new Map();
+  for (const [q, a] of [['кафе', 'cafe'], ['ресторан', 'restaurant'], ['fast food', 'fast_food']]) {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=40&bounded=1&addressdetails=1&accept-language=ru&viewbox=${vb}&q=${encodeURIComponent(q)}`);
+    if (!r.ok) throw new Error('nom');
+    (await r.json()).forEach(x => { if (!x.name || out.has(x.osm_id)) return; const ad = x.address || {};
+      out.set(x.osm_id, {id: (x.osm_type || 'n')[0] + x.osm_id, n: x.name, a: x.type in AM ? x.type : a, cu: '', br: '', d: Math.round(distM(la, lo, +x.lat, +x.lon)), addr: [ad.road, ad.house_number].filter(Boolean).join(', ')}); });
+    await new Promise(z => setTimeout(z, 1100)); // не чаще 1 запроса в секунду
+  }
+  return [...out.values()];
+}
 function nearFind() {
   if (nearBusy) return;
-  if (!navigator.geolocation) { toast('Телефон не даёт место. Выбери сеть ниже'); return; }
-  nearBusy = 1; render(true); toast('Ищу кафе рядом, это до минуты');
+  if (!navigator.geolocation) { toast('Телефон не даёт место. Выбери «Другое кафе»'); return; }
+  nearBusy = 1; render(true); 
   navigator.geolocation.getCurrentPosition(async p => {
     const la = +p.coords.latitude.toFixed(4), lo = +p.coords.longitude.toFixed(4);
     try {
-      const j = await ovFetch(`[out:json][timeout:20];nwr(around:1200,${la},${lo})[amenity~"^(cafe|restaurant|fast_food|food_court)$"][name];out center tags 120;`);
-      const L = j.elements.map(e => { const y = e.lat ?? (e.center && e.center.lat), x = e.lon ?? (e.center && e.center.lon), t = e.tags || {};
-        return {id: e.type[0] + e.id, n: t.name, a: t.amenity, cu: t.cuisine || '', br: t.brand || '', d: Math.round(distM(la, lo, y, x)), addr: [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(', ')}; })
-        .filter(x => x.n).sort((a, b) => a.d - b.d);
+      let L = await nomFind(la, lo).catch(() => []);
+      if (!L.length) {
+        const j = await ovFetch(`[out:json][timeout:20];nwr(around:1200,${la},${lo})[amenity~"^(cafe|restaurant|fast_food|food_court)$"][name];out center tags 120;`);
+        L = j.elements.map(e => { const y = e.lat ?? (e.center && e.center.lat), x = e.lon ?? (e.center && e.center.lon), t = e.tags || {};
+          return {id: e.type[0] + e.id, n: t.name, a: t.amenity, cu: t.cuisine || '', br: t.brand || '', d: Math.round(distM(la, lo, y, x)), addr: [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(', ')}; });
+      }
+      L = L.filter(x => x.n).sort((a, b) => a.d - b.d);
+      if (!L.length) throw new Error('empty');
       NEAR = {at: Date.now(), L}; try { localStorage.setItem('ss_near', JSON.stringify(NEAR)); } catch (e) {}
     } catch (e) { toast('Карта сейчас не отвечает. Попробуй через минуту'); }
     nearBusy = 0; render(true);
