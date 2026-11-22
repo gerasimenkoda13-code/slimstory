@@ -88,6 +88,16 @@ const Cloud = (() => {
         ing: r.ing.slice(0, 40).map(x => ({n: String(x[0]).slice(0, 80), i: x[1] || '', g: num(x[2]), k: num(x[3]), p: num(x[4]), f: num(x[5]), c: num(x[6])})),
         steps: (r.steps || []).slice(0, 30).map(x => String(x).slice(0, 500)), at: Date.now()});
     },
+    // удалить аккаунт: свои рецепты из общей базы, копию данных и сам вход
+    async deleteAccount(pw) {
+      await init(); if (!user) throw new Error('no user');
+      await user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(user.email, pw));
+      const q = await db.collection('recipes').where('uid', '==', user.uid).get();
+      await Promise.all(q.docs.map(d => d.ref.delete()));
+      await doc().delete();
+      clearTimeout(timer);
+      await user.delete();
+    },
     async unshareRecipe(id) { await init(); if (!user) throw new Error('no user'); await db.collection('recipes').doc(id).delete(); },
     push, pull, msg,
   };

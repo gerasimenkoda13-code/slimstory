@@ -5,6 +5,8 @@ on:
   push:
     tags: ['android-*']
   workflow_dispatch:
+    inputs:
+      version: {description: 'Версия, например 1.0.1', required: false, default: ''}
 permissions:
   contents: write
 jobs:
@@ -18,7 +20,7 @@ jobs:
         with: {distribution: temurin, java-version: 21}
       - name: Версия
         run: |
-          V="${GITHUB_REF_NAME#android-}"; case "$V" in [0-9]*) ;; *) V=1.0.0;; esac
+          V="${{ inputs.version }}"; [ -n "$V" ] || V="${GITHUB_REF_NAME#android-}"; case "$V" in [0-9]*) ;; *) V=1.0.0;; esac
           echo "VER=$V" >> $GITHUB_ENV
           echo "CODE=$(echo $V | awk -F. '{print $1*10000+$2*100+$3}')" >> $GITHUB_ENV
       - name: Файлы приложения

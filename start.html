@@ -251,7 +251,8 @@ function render(){
       <div class="err" id="er"></div>
       <div class="sp"></div><button class="btn" id="go" onclick="doReg()">Создать аккаунт</button>
       <button class="link" onclick="go('login')">Уже есть аккаунт? <b>Войти</b></button>
-      <button class="link" style="margin-top:6px;font-size:13px" onclick="toApp()">Пока без аккаунта</button></div>`;
+      <button class="link" style="margin-top:6px;font-size:13px" onclick="toApp()">Пока без аккаунта</button>
+      <a class="link" style="margin-top:10px;font-size:12px;font-weight:600" href="privacy.html">Создавая аккаунт, ты соглашаешься с политикой конфиденциальности</a></div>`;
   }else if(step==='login'){
     h=`<div class="scr auth"><div class="qtop"><button class="back" onclick="go(D.norm?'reg':0)">${ICON.back}</button></div><div class="logo">SlimStory</div><h2>С возвращением!</h2>
       <div class="field">${ICON.mail}<input id="em" type="email" autocomplete="email" placeholder="Почта"></div>
