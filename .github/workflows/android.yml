@@ -27,7 +27,7 @@ jobs:
           cp -r ../index.html ../start.html ../*.js ../manifest.webmanifest ../img ../icons ../vendor ../data www/
           rm -f www/sw.js
           npm init -y >/dev/null
-          npm i @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8
+          npm i @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor-community/speech-recognition@7
           npx cap init SlimStory com.slimstory.app --web-dir www
           npx cap add android
       - name: Разрешения, значок, версия

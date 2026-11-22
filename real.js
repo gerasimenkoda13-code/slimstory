@@ -150,6 +150,7 @@ function asMic() {
   const e = $('#ain'), v = e && e.value.trim();
   if (asRec) { try { asRec.stop(); } catch (er) {} return; }
   if (v) { asText(); return; }
+  if (capSR()) { capMic(); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { toast('Голос тут не работает. Напиши текстом'); if (e) e.focus(); return; }
   const r = new SR(); asRec = r; r.lang = 'ru-RU'; r.interimResults = true; r.maxAlternatives = 1;
@@ -159,6 +160,19 @@ function asMic() {
   r.onend = () => { asRec = null; AS.rec = 0; render(true); if (txt.trim()) asText(txt); };
   AS.rec = 1; render(true);
   try { r.start(); } catch (er) { asRec = null; AS.rec = 0; render(true); toast('Микрофон занят. Попробуй ещё раз'); }
+}
+// в приложении для Android голос идёт через системное распознавание
+function capSR() { const C = window.Capacitor; if (!C || !C.isNativePlatform || !C.isNativePlatform()) return null; return (C.Plugins && C.Plugins.SpeechRecognition) || (C.registerPlugin && C.registerPlugin('SpeechRecognition')); }
+async function capMic() {
+  const P = capSR();
+  try {
+    const av = await P.available(); if (!av || !av.available) { toast('На телефоне нет распознавания речи. Напиши текстом'); return; }
+    const pr = await P.requestPermissions(); if (pr && pr.speechRecognition && pr.speechRecognition !== 'granted') { toast('Разреши микрофон для приложения'); return; }
+    AS.rec = 1; render(true); asRec = {stop: () => P.stop()};
+    const r = await P.start({language: 'ru-RU', maxResults: 1, partialResults: false, popup: false});
+    asRec = null; AS.rec = 0; render(true);
+    const t = r && r.matches && r.matches[0]; if (t) { const i = $('#ain'); if (i) i.value = t; asText(t); }
+  } catch (e) { asRec = null; AS.rec = 0; render(true); toast('Не расслышала. Попробуй ещё раз'); }
 }
 function asAdd() { AS.items.forEach(x => day(sel).meals[AS.m].push(entryF(x.f, x.g))); save(); toast(`Добавлено ${MEALS.find(m => m.id === AS.m).v}`); AS = null; root('#/home'); }
 

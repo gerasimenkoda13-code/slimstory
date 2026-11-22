@@ -1,5 +1,5 @@
 // Работа без интернета: основа приложения хранится в телефоне, картинки — по мере просмотра
-const V = 'slimstory-11';
+const V = 'slimstory-12';
 const SHELL = ['./', 'index.html', 'start.html', 'app.js', 'off.js', 'share.js', 'real.js', 'cafe.js', 'food.js', 'recipes.js', 'diets.js', 'cloud.js', 'vendor/firebase-app-compat.js', 'vendor/firebase-auth-compat.js', 'vendor/firebase-firestore-compat.js', 'data.js', 'vendor/zxing.min.js', 'icons/pack.svg', 'imgmap.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
