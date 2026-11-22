@@ -4,28 +4,26 @@
 let CHAINS = (typeof CHAIN_DATA !== 'undefined') ? CHAIN_DATA : [];
 let NEAR = null; try { NEAR = JSON.parse(localStorage.getItem('ss_near') || 'null'); } catch (e) {}
 let nearBusy = 0, cafeQ = '';
-const OVP = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
+const OVP = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
 function distM(a, b, c, d) { const R = 6371e3, r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
 const kmT = m => m < 1000 ? Math.round(m / 10) * 10 + ' м' : (m / 1000).toFixed(1).replace('.', ',') + ' км';
 const chainOf = name => CHAINS.find(c => c.re.test(name || ''));
-async function ovFetch(q) {
-  for (const u of OVP) {
-    try {
-      const ac = new AbortController(), t = setTimeout(() => ac.abort(), 40000);
-      const r = await fetch(u + '?data=' + encodeURIComponent(q), {signal: ac.signal}); clearTimeout(t);
-      if (r.ok) return await r.json();
-    } catch (e) {}
-  }
-  throw new Error('ovp');
+// спрашиваем два сервера карты сразу и берём ответ того, кто быстрее
+function ovFetch(q) {
+  return new Promise((ok, bad) => {
+    let left = OVP.length; const ac = new AbortController(), t = setTimeout(() => ac.abort(), 45000);
+    OVP.forEach(u => fetch(u + '?data=' + encodeURIComponent(q), {signal: ac.signal}).then(r => r.ok ? r.json() : Promise.reject()).then(j => { clearTimeout(t); ac.abort(); ok(j); })
+      .catch(() => { if (--left === 0) { clearTimeout(t); bad(new Error('ovp')); } }));
+  });
 }
 function nearFind() {
   if (nearBusy) return;
   if (!navigator.geolocation) { toast('Телефон не даёт место. Выбери сеть ниже'); return; }
-  nearBusy = 1; render(true);
+  nearBusy = 1; render(true); toast('Ищу кафе рядом, это до минуты');
   navigator.geolocation.getCurrentPosition(async p => {
     const la = +p.coords.latitude.toFixed(4), lo = +p.coords.longitude.toFixed(4);
     try {
-      const j = await ovFetch(`[out:json][timeout:25];nwr(around:1500,${la},${lo})[amenity~"^(cafe|restaurant|fast_food|food_court)$"][name];out center tags 120;`);
+      const j = await ovFetch(`[out:json][timeout:20];nwr(around:1200,${la},${lo})[amenity~"^(cafe|restaurant|fast_food|food_court)$"][name];out center tags 120;`);
       const L = j.elements.map(e => { const y = e.lat ?? (e.center && e.center.lat), x = e.lon ?? (e.center && e.center.lon), t = e.tags || {};
         return {id: e.type[0] + e.id, n: t.name, a: t.amenity, cu: t.cuisine || '', br: t.brand || '', d: Math.round(distM(la, lo, y, x)), addr: [t['addr:street'], t['addr:housenumber']].filter(Boolean).join(', ')}; })
         .filter(x => x.n).sort((a, b) => a.d - b.d);
