@@ -41,10 +41,15 @@ with urllib.request.urlopen(req) as r, gzip.GzipFile(fileobj=r) as g:
         if abs(p * 4 + f * 9 + c * 4 - k) > max(60, k * 0.5):  # явно ошибочные данные
             continue
         brand = (row.get('brands') or '').split(',')[0].strip()
-        seen.add(code)
+        if not brand or '?' in name or len(re.findall(r'[A-Za-zА-Яа-яЁё]', name)) < 3:  # без марки и мусорные названия не берём
+            continue
+        key = (name.lower(), brand.lower(), k)
+        if key in seen:
+            continue
+        seen.add(code); seen.add(key)
         out.append([code, name[:80], brand[:40], k, p, f, c, grams(row.get('quantity')), grams(row.get('serving_size'))])
 
-out.sort(key=lambda x: (x[2] == '', x[1].lower()))
+out.sort(key=lambda x: (x[1].lower(), x[2].lower()))
 with open('data/off.json', 'w', encoding='utf-8') as fh:
     json.dump(out, fh, ensure_ascii=False, separators=(',', ':'))
 print('products', len(out), file=sys.stderr)
