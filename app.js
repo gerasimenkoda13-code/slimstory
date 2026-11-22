@@ -319,7 +319,7 @@ function foodTile(f, m) {
 function foodList(m) {
   const qq = addQ.trim().toLowerCase();
   if (addTab === 3 && !qq) {
-    const R = RECIPES.filter(r => r.mine).concat(S.myRecipes);
+    const R = S.myRecipes;
     return `<div class="grid">${R.map(r => recTile(r, m)).join('')}</div>`;
   }
   let L;
@@ -369,7 +369,7 @@ function addQty() {
 }
 
 // ---------- рецепты ----------
-function recipe(id) { return RECIPES.find(r => r.id === id) || S.myRecipes.find(r => r.id === id); }
+function recipe(id) { return S.myRecipes.find(r => r.id === id) || RECIPES.find(r => r.id === id) || SHARED.find(r => r.id === id); }
 function recTot(r, ing) { return (ing || r.ing).reduce((a, x) => { const k = x[2] / 100; return {k: a.k + x[3] * k, p: a.p + x[4] * k, f: a.f + x[5] * k, c: a.c + x[6] * k, g: a.g + x[2]}; }, {k: 0, p: 0, f: 0, c: 0, g: 0}); }
 function recTile(r, m) {
   const t = recTot(r), fav = S.rfav.includes(r.id);
@@ -380,8 +380,8 @@ let recSeg = 0, recCat = 'Все';
 function scrRecipes() {
   let body;
   if (recSeg === 0) {
-    let R = RECIPES.filter(r => r.mine).concat(S.myRecipes);
-    if (recCat === 'Избранное') R = RECIPES.concat(S.myRecipes).filter(r => S.rfav.includes(r.id));
+    let R = S.myRecipes;
+    if (recCat === 'Избранное') R = RECIPES.concat(S.myRecipes, sharedList()).filter(r => S.rfav.includes(r.id));
     body = `<div class="chips">${['Все', 'Избранное'].map(c => `<button class="chip ${c === recCat ? 'on' : ''}" onclick="recCat='${c}';render(true)">${c}</button>`).join('')}</div>
     <button class="rowlink" onclick="go('#/home-food')"><span class="ci">${FRIDGE}</span><b>Что есть дома?</b><span>рецепты из твоих продуктов</span>${IC.chev}</button>
     ${R.length ? `<div class="grid">${R.map(r => recTile(r)).join('')}</div>` : '<div class="empty">Здесь пока пусто</div>'}`;
@@ -395,21 +395,22 @@ function scrRecipes() {
     <div class="g2">${goals.map(([a, b, i, bg]) => `<button class="gc" style="background:${bg}" onclick="go('#/coll/${a}')"><b>${a}</b><small>${b}</small><img src="${I(i)}" alt=""></button>`).join('')}</div>
     <div class="sec">Как готовить</div>
     <div class="g3">${how.map(([a, i]) => `<button class="how" onclick="go('#/coll/${a}')"><div class="circ"><img src="${I(i)}" alt=""></div><span>${a}</span></button>`).join('')}</div>
-    ${block('Из греческого йогурта')}${block('Новинки')}
+    ${(() => { const U = sharedList(); return U.length ? `<div class="sec">От пользователей<button onclick="go('#/coll/От пользователей')">Все</button></div><div class="grid">${U.slice(0, 4).map(r => recTile(r)).join('')}</div>` : ''; })()}
+    ${block('Завтраки')}${block('Супы')}${block('Из греческого йогурта')}${block('Новинки')}${block('Десерты')}${block('Напитки')}
     <div class="sec">Ещё подборки</div>
     <div class="wrap" style="margin:12px 20px 0">${['За 5 минут', 'До 5 продуктов', 'Заготовки на неделю', 'Бюджетно', 'Без сахара', 'Сковорода'].map(c => `<button class="chip" onclick="go('#/coll/${c}')">${c}</button>`).join('')}</div>`;
   }
   return `<div class="scr anim"><div class="h1">Рецепты</div>
   <div class="search">${IC.search}<input placeholder="Найти рецепт" oninput="recFind(this.value)"></div>
-  <div class="seg2"><button class="${recSeg === 0 ? 'on' : ''}" onclick="recSeg=0;render(true)">Мои рецепты</button><button class="${recSeg === 1 ? 'on' : ''}" onclick="recSeg=1;render(true)">Из интернета</button></div>
+  <div class="seg2"><button class="${recSeg === 0 ? 'on' : ''}" onclick="recSeg=0;render(true)">Мои рецепты</button><button class="${recSeg === 1 ? 'on' : ''}" onclick="recSeg=1;render(true);sharedLoad()">Каталог</button></div>
   <div id="rbody">${body}</div></div>
-  ${recSeg === 0 ? `<button class="btn" style="position:absolute;right:20px;bottom:110px;width:auto;padding:0 20px;height:52px;z-index:15;gap:8px" onclick="go('#/scan')">${IC.plus('#fff', 18)}Новый рецепт</button>` : ''}${nav(1)}`;
+  ${recSeg === 0 ? `<button class="btn" style="position:absolute;right:20px;bottom:110px;width:auto;padding:0 20px;height:52px;z-index:15;gap:8px" onclick="ED=null;go('#/recnew')">${IC.plus('#fff', 18)}Новый рецепт</button>` : ''}${nav(1)}`;
 }
-function collList(name) { const tag = COLL[decodeURIComponent(name)], T = [].concat(tag || []); return RECIPES.filter(r => !tag || (r.tags || []).some(x => T.includes(x))); }
+function collList(name) { if (decodeURIComponent(name) === 'От пользователей') return sharedList(); const tag = COLL[decodeURIComponent(name)], T = [].concat(tag || []); return RECIPES.filter(r => !tag || (r.tags || []).some(x => T.includes(x))); }
 function recFind(v) {
   const qq = v.trim().toLowerCase(), b = $('#rbody');
   if (!qq) { render(true); return; }
-  const R = RECIPES.concat(S.myRecipes).filter(r => fits(r.n, qq));
+  const R = S.myRecipes.concat(RECIPES, sharedList()).filter(r => fits(r.n, qq));
   b.innerHTML = R.length ? `<div class="grid">${R.map(r => recTile(r)).join('')}</div>` : '<div class="empty">Ничего не нашлось</div>';
 }
 function scrColl(name) {
@@ -425,12 +426,18 @@ function ingSheet(target) {
   <div class="card" id="il" style="padding-top:2px;padding-bottom:2px">${ingList('')}</div>`, 'tall');
 }
 function ingList(qq) {
-  const L = Object.keys(ING).filter(k => ING[k][1] > 0 && fits(k, qq));
-  return L.map(k => `<button class="ing" style="width:100%;text-align:left" onclick="ingAdd(${q(k)})">${pic(ING[k][0], k, 40)}<div class="nm"><b>${esc(k)}</b><small>${ING[k][1]} ккал в 100 г</small></div><span class="pbtn">${IC.plus()}</span></button>`).join('') || '<div class="empty" style="margin:14px">Не нашлось</div>';
+  const L = Object.keys(ING).filter(k => ING[k][1] > 0 && fits(k, qq)), M = S.my.filter(f => fits(hay(f), qq));
+  return M.map(f => `<button class="ing" style="width:100%;text-align:left" onclick="ingAddMy('${f.id}')">${pic(f.i, f.n, 40)}<div class="nm"><b>${esc((f.mk ? f.mk + ' ' : '') + f.n)}</b><small>${N(f.k)} ккал в 100 г</small></div><span class="pbtn">${IC.plus()}</span></button>`).join('') + L.map(k => `<button class="ing" style="width:100%;text-align:left" onclick="ingAdd(${q(k)})">${pic(ING[k][0], k, 40)}<div class="nm"><b>${esc(k)}</b><small>${ING[k][1]} ккал в 100 г</small></div><span class="pbtn">${IC.plus()}</span></button>`).join('') || '<div class="empty" style="margin:14px">Не нашлось</div>';
 }
 function ingAdd(k) {
   const b = ING[k], row = [k, b[0], 100, b[1], b[2], b[3], b[4], b[5] || ''];
-  if (window._ingT === 'sc') SC.ing.push(row); else { RC.ing.push(row); RC.changed[RC.ing.length - 1] = 1; }
+  if (window._ingT === 'ed') ED.ing.push(row); else if (window._ingT === 'sc') SC.ing.push(row); else { RC.ing.push(row); RC.changed[RC.ing.length - 1] = 1; }
+  closeSheet(); render(true);
+}
+function ingAddMy(id) {
+  const f = S.my.find(x => x.id === id); if (!f) return;
+  const row = [(f.mk ? '«' + f.mk + '» ' : '') + f.n, f.i || '', f.por || 100, f.k, f.p, f.f, f.c, 'с упаковки'];
+  if (window._ingT === 'ed') ED.ing.push(row); else if (window._ingT === 'sc') SC.ing.push(row); else { RC.ing.push(row); RC.changed[RC.ing.length - 1] = 1; }
   closeSheet(); render(true);
 }
 function rcDel(j) { RC.ing.splice(j, 1); const c = {}; Object.keys(RC.changed).forEach(x => { x = +x; if (x < j) c[x] = 1; else if (x > j) c[x - 1] = 1; }); RC.changed = c; RC.removed = 1; render(true); }
@@ -438,6 +445,7 @@ function rcDel(j) { RC.ing.splice(j, 1); const c = {}; Object.keys(RC.changed).f
 let RC = null; // открытый рецепт
 function scrRecipe(id, m) {
   const r = recipe(id); if (!r) return scrRecipes();
+  const mineR = S.myRecipes.includes(r);
   if (!RC || RC.id !== id) RC = {id, n: 1, mode: 'p', g: 0, ing: r.ing.map(x => x.slice()), changed: {}};
   const all = recTot(r, RC.ing), porG = Math.round((S.rover[id] || all.g / r.por));
   const k = RC.mode === 'p' ? RC.n / r.por : (RC.g || porG) / all.g;
@@ -446,7 +454,7 @@ function scrRecipe(id, m) {
   const rows = RC.ing.map((x, j) => `<div class="ing">${pic(x[1], x[0])}<div class="nm"><b>${esc(x[0])}</b>${RC.changed[j] ? '<span class="tag e">изменено</span>' : x[7] ? `<span class="tag u">${x[7]}</span>` : ''}</div><label class="g"><input type="number" inputmode="numeric" value="${x[2]}" onchange="rcG(${j},this.value)">г</label><div class="kc">${N(x[3] * x[2] / 100)}</div><button class="del" onclick="rcDel(${j})" aria-label="Убрать">${IC.x()}</button></div>`).join('') + `<button class="add" style="display:flex;gap:8px;align-items:center;color:#7c5cff;font-weight:800;padding-top:10px" onclick="ingSheet('rc')">${IC.plus()} Добавить продукт</button>`;
   return `<div class="scr anim" style="padding-bottom:110px">
   <div class="hero"><button class="back" onclick="RC=null;back()" aria-label="Назад">${IC.back}</button><button class="rb" onclick="favR('${id}')" aria-label="Избранное">${IC.heart(S.rfav.includes(id))}</button><img src="${I(r.i)}" alt=""></div>
-  <div class="sheet-top"><div style="padding:16px 20px 0"><div style="font-size:26px;font-weight:900">${esc(r.n)}</div><div class="muted" style="font-size:14px">${r.t} · ${r.mine ? 'мой рецепт' : 'из интернета'} · на ${r.por} ${r.por === 1 ? 'порцию' : 'порции'}</div></div>
+  <div class="sheet-top"><div style="padding:16px 20px 0"><div style="font-size:26px;font-weight:900">${esc(r.n)}</div><div class="muted" style="font-size:14px">${r.t ? r.t + ' · ' : ''}${mineR ? 'мой рецепт' : r.shared ? 'от пользователей' : 'каталог'} · на ${r.por} ${r.por === 1 ? 'порцию' : r.por < 5 ? 'порции' : 'порций'}</div></div>
   <div class="tot">${totHTML(t)}</div>
   <div class="card"><div class="seg"><button class="${RC.mode === 'p' ? 'on' : ''}" onclick="RC.mode='p';render(true)">Порции</button><button class="${RC.mode === 'g' ? 'on' : ''}" onclick="RC.mode='g';render(true)">Граммы</button></div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">${RC.mode === 'p'
@@ -455,14 +463,16 @@ function scrRecipe(id, m) {
   <div class="sec">Продукты<span>Всего ${N(all.k)} ккал</span></div>
   <div class="card" style="padding-top:4px;padding-bottom:6px">${rows}</div>
   <div class="muted" style="margin:10px 22px 0;font-size:13px">Сегодня приготовила иначе? Поменяй граммы в списке, и калории пересчитаются только на этот раз.</div>
+  ${(r.steps || []).length ? `<div class="sec">Как готовить</div><div class="card" style="display:flex;flex-direction:column;gap:12px">${r.steps.map((x, j) => `<div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:none;width:26px;height:26px;border-radius:50%;background:#efe9ff;color:#6a4be0;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center">${j + 1}</span><span style="font-weight:700;font-size:15px;line-height:1.4">${esc(x)}</span></div>`).join('')}</div>` : ''}
+  ${mineR ? `<div style="display:flex;gap:10px;margin:14px 20px 0"><button class="btn w" style="flex:1" onclick="ED=null;go('#/recnew/${id}')">${IC.pen('#6a4be0', 16)} Редактировать</button><button class="btn w" style="flex:1;color:#c23a64" onclick="recDel('${id}')">Удалить</button></div>${r.share ? `<div class="muted" style="margin:10px 22px 0;font-size:13px">${r.sent ? 'Рецепт есть в каталоге для всех' : 'Попадёт в каталог, когда войдёшь в аккаунт'}</div>` : ''}` : ''}
   </div></div>
-  <div class="btns"><button class="btn w" onclick="saveRec('${id}')">Изменить рецепт</button><button class="btn" onclick="${M ? `addRec('${id}','${m}')` : `mealPick('addRec','${id}')`}">${M ? 'В ' + M.n.toLowerCase() : 'Добавить'}</button></div>`;
+  <div class="btns"><button class="btn w" onclick="${mineR ? `saveRec('${id}')` : `recCopy('${id}')`}">${mineR ? 'Сохранить граммы' : 'В мои рецепты'}</button><button class="btn" onclick="${M ? `addRec('${id}','${m}')` : `mealPick('addRec','${id}')`}">${M ? 'В ' + M.n.toLowerCase() : 'Добавить'}</button></div>`;
 }
 function rcG(j, v) { RC.ing[j][2] = Math.max(0, +v || 0); RC.changed[j] = 1; render(true); }
 function porSheet(id, g) {
   sheet(`<div class="sh"><div><b>Сколько весит 1 порция?</b></div></div><div class="big-in"><input id="pg" type="number" inputmode="numeric" value="${g}"><span>г</span></div><div style="padding:18px 20px 0"><button class="btn" onclick="S.rover['${id}']=+$('#pg').value||${g};save();closeSheet();render(true)">Сохранить</button></div>`);
 }
-function saveRec(id) { const r = recipe(id); r.ing = RC.ing.map(x => x.slice()); RC.changed = {}; toast('Рецепт сохранён'); render(true); }
+function saveRec(id) { const r = recipe(id); if (!S.myRecipes.includes(r)) return recCopy(id); r.ing = RC.ing.map(x => x.slice()); if (r.share) r.sent = 0; RC.changed = {}; save(); shareSync(); toast('Рецепт сохранён'); render(true); }
 function mealPick(fn, arg) {
   sheet(`<div class="sh"><div><b>Куда добавить?</b></div></div><div class="g2" style="margin-top:14px">${MEALS.map(m => `<button class="dl" style="margin:0;width:100%" onclick="closeSheet();${fn}('${arg}','${m.id}')"><div class="mi" style="width:40px;height:40px;border-radius:50%;background:${m.bg};display:flex;align-items:center;justify-content:center">${mic(m, 22)}</div><b>${m.n}</b></button>`).join('')}</div>`);
 }
@@ -948,7 +958,7 @@ function render(keep) {
   const [r, a, b] = route(), sc = $('.scr');
   const y = keep && sc ? sc.scrollTop : 0;
   closeSheet(); closePlus();
-  const R = {home: scrHome, add: () => scrAdd(a || 'b'), recipes: scrRecipes, recipe: () => scrRecipe(a, b), coll: () => scrColl(a), 'home-food': scrHomeFood,
+  const R = {home: scrHome, add: () => scrAdd(a || 'b'), recipes: scrRecipes, recipe: () => scrRecipe(a, b), recnew: () => scrRecEd(a), coll: () => scrColl(a), 'home-food': scrHomeFood,
     diets: scrDiets, diet: () => scrDiet(a), quiz: scrQuiz, quizres: scrQuizRes, reports: scrReports, weight: scrWeight, me: scrMe, settings: scrSettings,
     body: scrBody, prefs: scrPrefs, scan: scrScan, scanres: scrScanRes, label: scrBar, bar: scrBar, labelres: scrLabelRes, cafe: () => scrCafe(a), cafem: () => scrCafeMenu(a, b), assistant: scrAssistant};
   const html = (R[r] || scrHome)();
@@ -971,5 +981,5 @@ else {
   try { const P = JSON.parse(localStorage.getItem('ss_start') || 'null'); if (P && P.w && !P.water && !S.waterSet) { S.waterGoal = Math.min(3500, Math.max(1500, Math.round((30 * P.w + ({run: 300, fire: 500}[P.act] || 0)) / 100) * 100)); S.waterSet = 1; save(); } } catch (e) {}
   render();
 }
-if (typeof Cloud !== 'undefined' && HAS) setTimeout(() => Cloud.init().then(() => Cloud.onUser(u => { if (u) { Cloud.queue(); if (route()[0] === 'me' || route()[0] === 'settings') render(true); } })).catch(() => {}), 400);
+if (typeof Cloud !== 'undefined' && HAS) setTimeout(() => Cloud.init().then(() => Cloud.onUser(u => { if (u) { Cloud.queue(); shareSync(); if (route()[0] === 'me' || route()[0] === 'settings') render(true); } })).catch(() => {}), 400);
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

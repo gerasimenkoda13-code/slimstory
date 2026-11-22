@@ -74,6 +74,21 @@ const Cloud = (() => {
     async signOut() { await init(); clearTimeout(timer); try { await push(); } catch (e) {} await auth.signOut(); },
     // сохранить в облако через 3 секунды после последнего изменения
     queue() { if (!user) return; clearTimeout(timer); timer = setTimeout(() => push().catch(() => {}), 3000); },
+    // общая база рецептов: читать могут все, менять и удалять — только автор (правила Firestore)
+    async loadRecipes() {
+      await init();
+      const q = await db.collection('recipes').orderBy('at', 'desc').limit(500).get();
+      return q.docs.map(d => Object.assign({id: d.id}, d.data()));
+    },
+    async shareRecipe(r) {
+      await init(); if (!user) throw new Error('no user');
+      const num = x => Math.round((+x || 0) * 10) / 10;
+      await db.collection('recipes').doc(r.id).set({
+        uid: user.uid, n: String(r.n).slice(0, 80), i: r.i || '', t: String(r.t || '').slice(0, 20), por: Math.max(1, Math.min(50, +r.por || 1)),
+        ing: r.ing.slice(0, 40).map(x => ({n: String(x[0]).slice(0, 80), i: x[1] || '', g: num(x[2]), k: num(x[3]), p: num(x[4]), f: num(x[5]), c: num(x[6])})),
+        steps: (r.steps || []).slice(0, 30).map(x => String(x).slice(0, 500)), at: Date.now()});
+    },
+    async unshareRecipe(id) { await init(); if (!user) throw new Error('no user'); await db.collection('recipes').doc(id).delete(); },
     push, pull, msg,
   };
 })();
