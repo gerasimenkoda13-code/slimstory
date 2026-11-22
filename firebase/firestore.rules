@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // личные данные: каждый видит только себя
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    // общая база рецептов: читать могут все, добавлять — вошедшие, менять и удалять — только автор
+    match /recipes/{id} {
+      function ok(d) {
+        return d.uid == request.auth.uid
+          && d.n is string && d.n.size() > 0 && d.n.size() <= 80
+          && d.ing is list && d.ing.size() > 0 && d.ing.size() <= 40
+          && d.steps is list && d.steps.size() <= 30
+          && d.por is int && d.por >= 1 && d.por <= 50;
+      }
+      allow read: if true;
+      allow create: if request.auth != null && ok(request.resource.data);
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid && ok(request.resource.data);
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+  }
+}
