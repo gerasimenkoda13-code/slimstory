@@ -3,10 +3,11 @@
 // Данные: Open Food Facts (openfoodfacts.org), лицензия ODbL.
 let OFF = null, OFFload = null;
 const OFFC = {}; // товары из базы, которые сейчас на экране
+const unq = s => String(s || '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 function offLoad() {
   if (OFFload) return OFFload;
   OFFload = fetch('data/off.json').then(r => r.ok ? r.json() : []).catch(() => [])
-    .then(a => (OFF = a.map(x => ({x, h: nz(x[2] + ' ' + x[1]), s: sk(x[2] + ' ' + x[1])}))));
+    .then(a => (OFF = a.map(x => { x[1] = unq(x[1]); x[2] = unq(x[2]); return x; }).map(x => ({x, h: nz(x[2] + ' ' + x[1]), s: sk(x[2] + ' ' + x[1])}))));
   return OFFload;
 }
 function offFood(x) {
@@ -18,10 +19,12 @@ function offSearch(q, lim = 40) {
   if (!OFF || !OFF.length) return [];
   const b = nz(q); if (b.length < 2) return [];
   const words = b.split(' '), kb = b.replace(/\s/g, '').length >= 4 ? sk(b) : '', res = [];
+  const r2 = []; // сначала точные совпадения, потом похожие по звучанию
   for (const o of OFF) {
-    if (words.every(w => o.h.includes(w)) || (kb.length >= 3 && o.s.includes(kb))) { res.push(o.x); if (res.length >= lim) break; }
+    if (words.every(w => o.h.includes(w))) { res.push(o.x); if (res.length >= lim) break; }
+    else if (r2.length < lim && ((kb.length >= 3 && o.s.includes(kb)) || wordsFit(o.h, o.s, b))) r2.push(o.x);
   }
-  return res.map(offFood);
+  return res.concat(r2).slice(0, lim).map(offFood);
 }
 // товар из базы попадает в «Мои продукты», чтобы был под рукой и без интернета
 function keepFood(f) {

@@ -81,14 +81,20 @@ const nz = s => String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/[«�
 const TRL = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ж:'7',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'4',ш:'6',щ:'6',ъ:'',ы:'y',ь:'',э:'e',ю:'u',я:'a'};
 function sk(s) { // «скелет» слова: латиница, без гласных и пробелов
   let t = nz(s).replace(/[а-я]/g, c => TRL[c] ?? c);
-  t = t.replace(/sch|tch|ch/g, '4').replace(/sh/g, '6').replace(/zh|j/g, '7').replace(/ph/g, 'f').replace(/ck|q/g, 'k').replace(/x/g, 'ks').replace(/w/g, 'v')
+  t = t.replace(/sch/g, '6').replace(/tch|ch/g, '4').replace(/sh/g, '6').replace(/zh|j/g, '7').replace(/ph/g, 'f').replace(/ck|q/g, 'k').replace(/x/g, 'ks').replace(/w/g, 'v')
     .replace(/c(?=[eiy])/g, 's').replace(/c/g, 'k').replace(/kh/g, 'h').replace(/\s/g, '').replace(/(.)\1+/g, '$1').replace(/[aeiouy]/g, '');
   return t;
 }
 function fits(name, q) { // подходит ли название под запрос
   const a = nz(name), b = nz(q); if (!b) return true; if (a.includes(b)) return true;
   if (b.replace(/\s/g, '').length < 4) return false;
-  const kb = sk(b); return kb.length >= 3 && sk(a).includes(kb);
+  const kb = sk(b); if (kb.length >= 3 && sk(a).includes(kb)) return true;
+  return wordsFit(a, sk(a), b);
+}
+// каждое слово запроса — по написанию или по звучанию: «данон творог» = «Danone Творог»
+function wordsFit(h, hs, b) {
+  const W = b.split(' '); if (W.length < 2) return false;
+  return W.every(w => h.includes(w) || (w.length >= 4 && (k => k.length >= 2 && hs.includes(k))(sk(w))));
 }
 const hay = f => (f.mk ? f.mk + ' ' : '') + f.n;
 let sel = TODAY; // выбранный день на главной
