@@ -37,12 +37,7 @@ jobs:
           sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application#' $M
           R=app/src/main/res
           rm -rf $R/mipmap-anydpi-v26
-          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
-            n=${d%%:*}; s=${d##*:}
-            convert ../www/icons/icon-512.png -resize ${s}x${s} $R/mipmap-$n/ic_launcher.png
-            cp $R/mipmap-$n/ic_launcher.png $R/mipmap-$n/ic_launcher_round.png
-            convert ../www/icons/maskable-512.png -resize $((s*9/4))x$((s*9/4)) $R/mipmap-$n/ic_launcher_foreground.png
-          done
+          cp -r ../../android-res/* $R/
           sed -i "s/versionCode [0-9]*/versionCode $CODE/; s/versionName \"[^\"]*\"/versionName \"$VER\"/" app/build.gradle
           grep -n "versionCode\|versionName\|applicationId" app/build.gradle
       - name: Сборка
