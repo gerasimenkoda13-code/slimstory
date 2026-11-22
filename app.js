@@ -16,6 +16,7 @@ const IC = {
   x: (c = '#e2577f', s = 12) => SV('<path d="M6 6l12 12M18 6L6 18"/>', c, 3, s),
   heart: on => SV('<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>', '#e2577f', 2.4, 16, on ? '#e2577f' : 'none'),
   search: SV('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>', '#a49dbb', 2.6, 20),
+  plate: (c = '#fff', s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" stroke="${c}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="26" cy="26" r="14"/><circle cx="26" cy="26" r="7"/><path d="M6 8v10a3 3 0 0 0 3 3v19M9 8v8M12 8v10a3 3 0 0 1-3 3"/></svg>`,
   cam: (c = '#fff', s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" stroke="${c}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 17a4 4 0 0 1 4-4h4l3-4h10l3 4h4a4 4 0 0 1 4 4v15a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z"/><circle cx="24" cy="24" r="6.5"/></svg>`,
   mic: (c = '#fff', s = 24) => SV('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', c, 2.4, s),
   pen: (c = '#a49dbb', s = 18) => SV('<path d="M4 20h4L19 9l-4-4L4 16z"/>', c, 2.2, s),
@@ -287,7 +288,7 @@ function togglePlus() {
   <div class="title">Что добавить?</div>
   <div class="arc s"><button class="circ" onclick="closePlus();weightSheet()" aria-label="Вес"><img src="${I('scale')}" alt=""></button><button class="circ" onclick="closePlus();addWater(${GL()})" aria-label="Вода"><img src="${I('glass_100')}" alt=""></button><button class="circ" onclick="closePlus();prodPick('fruit')" aria-label="Фрукты"><img src="${I('tr_apple')}" alt=""></button></div>
   <div class="b2">${big[0]}${big[1]}</div><div class="b2">${big[2]}${big[3]}</div>
-  <div class="ic2"><button class="circ" onclick="closePlus();go('#/scan')" aria-label="Скриншот">${IC.cam('#fff', 24)}</button><button class="circ" onclick="closePlus();go('#/assistant')" aria-label="Голосом">${IC.mic('#fff', 24)}</button></div>
+  <div class="ic2"><button class="circ" onclick="closePlus();photoFood()" aria-label="Фото еды">${IC.plate('#fff', 24)}</button><button class="circ" onclick="closePlus();go('#/scan')" aria-label="Скриншот">${IC.cam('#fff', 24)}</button><button class="circ" onclick="closePlus();go('#/assistant')" aria-label="Голосом">${IC.mic('#fff', 24)}</button></div>
   </div></div>`);
   $('#bp').classList.add('x');
 }
@@ -305,6 +306,7 @@ function scrAdd(m) {
   const tabs = ['Недавние', 'Избранное', 'Продукты', 'Рецепты'];
   return `<div class="scr anim" style="padding-bottom:110px">${topb(M.n, dTitle(sel))}
   <div class="search">${IC.search}<input id="fq" placeholder="Найти продукт или марку" value="${esc(addQ)}" oninput="addQ=this.value;$('#fl').innerHTML=foodList('${M.id}')"><button class="cam" onclick="go('#/bar')" aria-label="Сфоткать этикетку">${IC.cam()}</button></div>
+  <button class="rowlink" onclick="photoFood('${M.id}')"><span class="ci">${IC.plate('#7c5cff', 20)}</span><b>Фото еды</b><span>сфоткай тарелку</span>${IC.chev}</button>
   <button class="rowlink" onclick="go('#/cafe/${M.id}')"><span class="ci">${IC.fork}</span><b>Кафе и рестораны</b><span>меню с КБЖУ</span>${IC.chev}</button>
   <div class="tabs">${tabs.map((t, i) => `<button class="tab ${i === addTab ? 'on' : ''}" onclick="addTab=${i};addQ='';render(true)">${t}</button>`).join('')}</div>
   <div class="sum">Добавлено ${M.v}<span>${N(s.k)} ккал</span></div>
@@ -365,7 +367,8 @@ function addQty() {
   QS.id = f.id;
   day(sel).meals[QS.m].push(entryF(f, g));
   S.recent = [QS.id].concat(S.recent.filter(x => x !== QS.id)).slice(0, 12);
-  save(); closeSheet(); toast(`Добавлено: ${f.n}, ${N(f.k * g / 100)} ккал`); render(true);
+  save(); closeSheet(); toast(`Добавлено: ${f.n}, ${N(f.k * g / 100)} ккал`);
+  if (route()[0] === 'photo') { FP = null; root('#/home'); } else render(true);
 }
 
 // ---------- рецепты ----------
@@ -890,7 +893,7 @@ function render(keep) {
   closeSheet(); closePlus();
   const R = {home: scrHome, add: () => scrAdd(a || 'b'), recipes: scrRecipes, recipe: () => scrRecipe(a, b), recnew: () => scrRecEd(a), rfold: () => scrFold(a), coll: () => scrColl(a), 'home-food': scrHomeFood,
     diets: scrDiets, diet: () => scrDiet(a), quiz: scrQuiz, quizres: scrQuizRes, reports: scrReports, weight: scrWeight, me: scrMe, settings: scrSettings,
-    body: scrBody, prefs: scrPrefs, scan: scrScan, scanres: scrScanRes, label: scrBar, bar: scrBar, labelres: scrLabelRes, cafe: () => scrCafe(a), cafem: () => scrCafeMenu(a, b), assistant: scrAssistant};
+    body: scrBody, prefs: scrPrefs, scan: scrScan, scanres: scrScanRes, label: scrBar, bar: scrBar, labelres: scrLabelRes, cafe: () => scrCafe(a), cafem: () => scrCafeMenu(a, b), assistant: scrAssistant, photo: scrPhoto};
   const html = (R[r] || scrHome)();
   if (keep && app().firstElementChild) {
     const nw = htmlEl(html); nw.querySelectorAll('.anim').forEach(e => e.classList.remove('anim'));
