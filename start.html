@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SlimStory</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="SlimStory">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Great+Vibes&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2a2340;--mute:#8a83a3;--mute2:#a49dbb;--pri:#7c5cff;--pri-l:#efe9ff;--pri-ll:#f6f3ff;
+  --grad:linear-gradient(135deg,#8b6cff,#4fd1b0);--line:#ebe6f7;
+  --bg:linear-gradient(180deg,#efeaff,#f3f0ff 50%,#eaf8f2);
+  --mn:#dcf7ec;--mnt:#159a6a;--err:#c23a64;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:light}}
+:root[data-theme="dark"]{color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:Nunito,system-ui,sans-serif;color:var(--ink);background:#e9e4f7;overflow:hidden}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input{font:inherit;color:inherit}
+#phone{position:relative;width:100%;max-width:430px;height:100%;margin:0 auto;background:var(--bg);overflow:hidden}
+@media (min-width:600px){#phone{height:min(900px,calc(100% - 32px));margin-top:16px;border-radius:44px;box-shadow:0 30px 80px rgba(70,50,140,.25);border:10px solid #fff}}
+.scr{position:absolute;inset:0;display:flex;flex-direction:column;padding:max(env(safe-area-inset-top),20px) 20px calc(24px + env(safe-area-inset-bottom));overflow-y:auto;scrollbar-width:none;animation:in .25s ease}
+.scr::-webkit-scrollbar{display:none}
+@keyframes in{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+.logo{font-family:'Great Vibes',cursive;font-weight:400;color:#6a4be0;line-height:1}
+
+/* заставка */
+.splash{align-items:center;justify-content:center;text-align:center}
+.splash .art{width:220px;height:300px;border-radius:120px 120px 30px 30px;background:radial-gradient(circle at 50% 35%,#e4dcff,#f3f0ff 70%);display:flex;align-items:center;justify-content:center;color:var(--mute2);font-weight:800;font-size:13px;border:2px dashed #d6ccff}
+.splash .logo{font-size:64px;margin-top:22px;animation:fade 1.4s ease .3s both}
+.sicon{width:150px;height:150px;border-radius:38px;box-shadow:0 18px 50px rgba(108,80,200,.25);animation:pop 1s ease both}
+@keyframes pop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.slide .pic.ph{border:0;background:radial-gradient(circle at 50% 45%,#ffffff,#efe9ff 72%);position:relative;overflow:hidden}
+.slide .pic.ph img{position:absolute;object-fit:contain;filter:drop-shadow(0 10px 18px rgba(80,60,140,.15))}
+
+/* слайды */
+.slide{padding:0;cursor:pointer}
+.slide .pic{flex:1;margin:max(env(safe-area-inset-top),20px) 20px 0;border-radius:32px;background:radial-gradient(circle at 50% 40%,#e4dcff,#f6f3ff 75%);display:flex;align-items:center;justify-content:center;color:var(--mute2);font-weight:800;font-size:14px;border:2px dashed #d6ccff;text-align:center;padding:20px}
+.slide .txt{padding:26px 24px 0}
+.slide h1{font-size:30px;font-weight:900;line-height:1.15}
+.slide .foot{display:flex;align-items:center;justify-content:space-between;padding:22px 24px calc(28px + env(safe-area-inset-bottom))}
+.dots{display:flex;gap:7px}.dots i{width:8px;height:8px;border-radius:4px;background:#d9d1f5;transition:.25s}.dots i.on{width:26px;background:var(--pri)}
+.arrow{width:64px;height:64px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(108,80,200,.3)}
+.skip{position:absolute;top:calc(max(env(safe-area-inset-top),20px) + 14px);right:34px;font-weight:800;font-size:14px;color:var(--lvt,#6a4be0);background:rgba(255,255,255,.85);padding:7px 14px;border-radius:16px}
+
+/* анкета */
+.qtop{display:flex;align-items:center;gap:12px;padding-top:14px}
+.back{width:42px;height:42px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(108,80,200,.10);flex:none}
+.prog{flex:1;height:8px;border-radius:4px;background:#fff;overflow:hidden}.prog i{display:block;height:100%;background:var(--grad);border-radius:4px;transition:width .3s}
+.q{font-size:28px;font-weight:900;line-height:1.2;margin-top:34px}
+.qs{color:var(--mute);font-weight:700;font-size:15px;margin-top:8px}
+.body{flex:1;display:flex;flex-direction:column;margin-top:26px}
+.opt{display:flex;align-items:center;gap:14px;background:#fff;border-radius:22px;padding:16px;margin-bottom:12px;text-align:left;border:2px solid transparent;width:100%}
+.opt .oi{width:48px;height:48px;border-radius:50%;background:var(--pri-ll);display:flex;align-items:center;justify-content:center;flex:none}
+.opt b{font-size:17px;font-weight:800;display:block}
+.opt small{font-size:13px;color:var(--mute);font-weight:700}
+.opt.on{border-color:var(--pri);background:var(--pri-ll)}
+.opt.on .oi{background:#fff}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.two .opt{flex-direction:column;text-align:center;padding:22px 10px;margin:0}
+.two .opt .oi{width:64px;height:64px}
+.field{background:#fff;border-radius:20px;padding:16px 18px;display:flex;align-items:center;gap:10px;border:2px solid transparent;margin-bottom:12px}
+.field:focus-within{border-color:var(--pri)}
+.field input{flex:1;border:0;outline:0;background:none;font-weight:800;font-size:18px;min-width:0}
+.field input::placeholder{color:var(--mute2);font-weight:700}
+.field .eye{flex:none;opacity:.6}
+.lbl{font-size:13px;font-weight:800;color:var(--mute);margin:0 0 6px 6px}
+.num{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:30px}
+.num button{width:56px;height:56px;border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(108,80,200,.12);font-size:28px;font-weight:800;color:var(--pri);flex:none}
+.num .v{min-width:140px;text-align:center}
+.num .v input{width:140px;text-align:center;border:0;outline:0;background:none;font-size:60px;font-weight:900;color:var(--ink)}
+.num .v small{display:block;font-size:16px;font-weight:800;color:var(--mute)}
+.hint{text-align:center;margin-top:22px;font-weight:800;font-size:14px;color:var(--mnt);background:var(--mn);border-radius:14px;padding:8px 14px;align-self:center}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{padding:11px 16px;border-radius:20px;background:#fff;font-weight:800;font-size:15px;color:#5f5878;border:2px solid transparent}
+.chip.on{border-color:var(--pri);background:var(--pri-ll);color:#6a4be0}
+.chip.add{color:var(--pri)}
+.btn{display:block;width:100%;padding:18px;border-radius:22px;background:var(--grad);color:#fff;font-weight:900;font-size:18px;box-shadow:0 10px 24px rgba(108,80,200,.28);margin-top:auto}
+.btn:disabled{opacity:.45;box-shadow:none}
+.btn.w{background:#fff;color:var(--ink);box-shadow:0 4px 14px rgba(108,80,200,.10)}
+.link{display:block;text-align:center;font-weight:800;font-size:15px;color:var(--mute);margin-top:16px;width:100%}
+.link b{color:var(--pri)}
+.sp{flex:1;min-height:20px}
+
+/* итог */
+.res{text-align:center}
+.res .big{background:#fff;border-radius:28px;padding:26px 16px;margin-top:26px}
+.res .big b{display:block;font-size:64px;font-weight:900;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.res .big small{font-size:16px;font-weight:800;color:var(--mute)}
+.res .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px}
+.res .row div{background:#fff;border-radius:18px;padding:12px 6px}
+.res .row b{display:block;font-size:18px;font-weight:900}
+.res .row small{font-size:12px;font-weight:800;color:var(--mute)}
+.goal{display:flex;align-items:center;gap:12px;background:#fff;border-radius:20px;padding:14px 16px;margin-top:12px;text-align:left}
+.goal .oi{width:44px;height:44px;border-radius:50%;background:var(--mn);display:flex;align-items:center;justify-content:center;flex:none}
+.goal b{display:block;font-size:16px;font-weight:900}.goal small{font-size:13px;font-weight:700;color:var(--mute)}
+.note{font-size:12px;color:var(--mute2);font-weight:700;margin-top:14px;text-align:center}
+
+/* вход */
+.auth .logo{font-size:52px;text-align:center;margin-top:30px}
+.auth h2{font-size:26px;font-weight:900;text-align:center;margin:18px 0 26px}
+.auth .sub{color:var(--mute);font-weight:700;font-size:15px;text-align:center;margin:-16px 0 24px}
+.forgot{align-self:flex-end;font-weight:800;font-size:14px;color:var(--pri);margin:-2px 6px 0 0}
+.code{display:flex;gap:12px;justify-content:center;margin:10px 0 18px}
+.code input{width:60px;height:70px;border-radius:18px;border:2px solid transparent;background:#fff;text-align:center;font-size:30px;font-weight:900;outline:0}
+.code input:focus{border-color:var(--pri)}
+.again{text-align:center;font-weight:800;font-size:14px;color:var(--mute)}
+.err{color:var(--err);font-weight:800;font-size:13px;margin:-4px 0 10px 8px}
+.ok{align-items:center;justify-content:center;text-align:center}
+.ok .tick{width:110px;height:110px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;box-shadow:0 14px 30px rgba(108,80,200,.3)}
+.ok h2{font-size:28px;font-weight:900;margin-top:24px}
+</style>
+</head>
+<body>
+<div id="phone"></div>
+<script>
+const $=s=>document.querySelector(s);
+const ICON={
+ back:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2a2340" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+ arrow:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+ down:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7c5cff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg>',
+ same:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7c5cff" stroke-width="2.4" stroke-linecap="round"><path d="M4 9h16M4 15h16"/></svg>',
+ up:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7c5cff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4M6 10l6-6 6 6"/></svg>',
+ fem:'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#e0609a" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg>',
+ mal:'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#4f8be0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="5"/><path d="M14 10l6-6M15 4h5v5"/></svg>',
+ sofa:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7c5cff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V8a2 2 0 012-2h12a2 2 0 012 2v3"/><path d="M2 13a2 2 0 014 0v2h12v-2a2 2 0 014 0v4H2z"/><path d="M5 17v2M19 17v2"/></svg>',
+ walk:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7c5cff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M10 22l2-7 3 3v4M8 12l2-4 4 1 2 4M12 15l-1-6"/></svg>',
+ run:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7c5cff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="4" r="2"/><path d="M5 21l4-5 3 2 1-6M7 10l3-3 4 1 2 3 3 1M12 18l2 3"/></svg>',
+ fire:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7c5cff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 7-3 7-7 0-5-5-7-5-12-3 2-5 5-5 8-1-1-2-2-2-4-2 2-2 5-2 8 0 4 3 7 7 7z"/></svg>',
+ flag:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#159a6a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
+ eye:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2a2340" stroke-width="2" stroke-linecap="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+ mail:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a49dbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 7l9 6 9-6"/></svg>',
+ lock:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a49dbb" stroke-width="2" stroke-linecap="round"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>',
+ phone:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a49dbb" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>',
+ user:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a49dbb" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+ tick:'<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>',
+};
+
+/* данные анкеты */
+let D={name:'',goal:'',sex:'',age:25,h:165,w:70,tw:60,act:'',allergy:[]};
+try{const s=JSON.parse(localStorage.getItem('ss_start')||'null');if(s)D=Object.assign(D,s)}catch(e){}
+const save=()=>{try{localStorage.setItem('ss_start',JSON.stringify(D))}catch(e){}};
+
+/* расчёт нормы: Миффлин — Сан Жеор, ×активность, −500, порог 1500 ж / 1700 м */
+function norm(){
+  const bmr=10*D.w+6.25*D.h-5*D.age+(D.sex==='m'?5:-161);
+  const k={sofa:1.2,walk:1.375,run:1.55,fire:1.725}[D.act]||1.2;
+  const tdee=bmr*k;
+  let kc=tdee;
+  if(D.goal==='down'){
+    const floor=D.sex==='m'?1700:1500, hard=D.sex==='m'?1500:1200;
+    kc=Math.max(tdee-500,floor);
+    if(kc>tdee-200) kc=Math.max(tdee-200,hard);
+  }
+  kc=Math.round(kc/10)*10;
+  const deficit=Math.max(tdee-kc,0);
+  const kgWeek=D.goal==='down'?Math.max(deficit*7/7700,0.1):0;
+  const weeks=D.goal==='down'?Math.ceil(Math.max(D.w-D.tw,0)/kgWeek):0;
+  return {kc,p:Math.round(kc*.25/4),f:Math.round(kc*.30/9),c:Math.round(kc*.45/4),weeks};
+}
+
+const PIC1=[['img/d1-ovsyanaya-kasha.webp',8,12,52],['img/d1-syrniki.webp',48,6,46],['img/d3-kurinaya-grudka-gril.webp',30,46,52]];
+const PIC2=[['img/tr-apple.webp',12,14,30],['img/tr-straw.webp',58,10,28],['img/tr-broc.webp',36,36,32],['img/tr-carrot.webp',10,60,28],['img/tr-banana.webp',60,58,30]];
+const Q=['name','goal','sex','age','h','w','tw','act','allergy'];
+let step=0;
+function go(id){step=id;render()}
+
+function qtop(i){
+  const total=Q.length+1;
+  return `<div class="qtop"><button class="back" onclick="prev()">${ICON.back}</button><div class="prog"><i style="width:${Math.round((i+1)/total*100)}%"></i></div></div>`;
+}
+function prev(){ if(typeof step==='number'&&step>0) go(step-1); else go('s2') }
+function next(){ save(); const i=Q.indexOf(Q[step]); if(D.goal!=='down'&&Q[i+1]==='tw') go(i+2); else go(i+1) }
+
+function numScr(i,key,q,unit,min,max,hint){
+  return `<div class="scr">${qtop(i)}<div class="q">${q}</div>
+  <div class="body"><div class="num"><button onclick="bump('${key}',-1,${min},${max})">−</button>
+  <div class="v"><input id="n" inputmode="numeric" value="${D[key]}" oninput="D['${key}']=+this.value||0"><small>${unit}</small></div>
+  <button onclick="bump('${key}',1,${min},${max})">+</button></div>${hint||''}
+  <button class="btn" onclick="next()">Дальше</button></div></div>`;
+}
+function bump(k,d,min,max){D[k]=Math.min(max,Math.max(min,(+D[k]||0)+d));$('#n').value=D[k]}
+function opt(key,val,icon,title,sub,two){
+  return `<button class="opt ${D[key]===val?'on':''}" onclick="D['${key}']='${val}';save();setTimeout(next,180);render()">
+  <span class="oi">${ICON[icon]}</span><span><b>${title}</b>${sub?`<small>${sub}</small>`:''}</span></button>`;
+}
+const ALL=['Молоко','Глютен','Орехи','Арахис','Яйца','Рыба','Морепродукты','Соя','Мёд','Цитрусы'];
+function tog(a){const i=D.allergy.indexOf(a);if(a==='none'){D.allergy=[]}else if(i>=0)D.allergy.splice(i,1);else D.allergy.push(a);save();render()}
+
+function finish(){D.norm=norm();D.at=Date.now();save();location.replace('./')}
+function render(){
+  const P=$('#phone');let h='';
+  if(step==='splash'){
+    h=`<div class="scr splash"><img class="sicon" src="icons/icon-512.png" alt=""><div class="logo">SlimStory</div></div>`;
+  }else if(step==='s1'||step==='s2'){
+    const one=step==='s1';
+    h=`<div class="scr slide" onclick="go('${one?'s2':0}')">
+      <div class="pic ph">${(one?PIC1:PIC2).map(p=>`<img src="${p[0]}" style="left:${p[1]}%;top:${p[2]}%;width:${p[3]}%">`).join('')}</div>
+      ${one?`<button class="skip" onclick="event.stopPropagation();go(0)">Пропустить</button>`:''}
+      <div class="txt"><h1>${one?'Считай калории<br>за пару касаний':'Начни свою<br>историю стройности'}</h1></div>
+      <div class="foot"><div class="dots"><i class="${one?'on':''}"></i><i class="${one?'':'on'}"></i></div>
+      <button class="arrow" onclick="event.stopPropagation();go('${one?'s2':0}')">${ICON.arrow}</button></div></div>`;
+  }else if(step==='result'){
+    const r=norm();
+    const d=new Date();d.setDate(d.getDate()+r.weeks*7);
+    const date=d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+    h=`<div class="scr res">${qtop(Q.length)}<div class="q">${D.name?D.name+', твоя':'Твоя'} норма</div>
+      <div class="big"><b>${r.kc.toLocaleString('ru-RU')}</b><small>ккал в день</small></div>
+      <div class="row"><div><b>${r.p} г</b><small>белки</small></div><div><b>${r.f} г</b><small>жиры</small></div><div><b>${r.c} г</b><small>углеводы</small></div></div>
+      ${D.goal==='down'?`<div class="goal"><span class="oi">${ICON.flag}</span><span><b>${D.tw} кг к ${date}</b><small>примерно ${r.weeks} нед.</small></span></div>`:''}
+      <div class="note">Это примерный расчёт. При болезнях посоветуйся с врачом.</div>
+      <div class="sp"></div><button class="btn" onclick="finish()">Начать</button></div>`;
+  }else if(step==='reg'){
+    h=`<div class="scr auth"><div class="qtop"><button class="back" onclick="go('result')">${ICON.back}</button></div>
+      <h2 style="margin-top:10px">Сохрани прогресс</h2><div class="sub">Чтобы войти с другого телефона</div>
+      <div class="field">${ICON.mail}<input type="email" placeholder="Почта"></div>
+      <div class="field">${ICON.lock}<input type="password" placeholder="Пароль"><span class="eye">${ICON.eye}</span></div>
+      <div class="field" style="margin-bottom:6px">${ICON.phone}<input type="tel" placeholder="Телефон"></div><div class="lbl" style="margin-bottom:12px">Пришлём код, если забудешь пароль</div>
+      <div class="sp"></div><button class="btn" onclick="go('ok')">Создать аккаунт</button>
+      <button class="link" onclick="go('login')">Уже есть аккаунт? <b>Войти</b></button></div>`;
+  }else if(step==='login'){
+    h=`<div class="scr auth"><div class="logo">SlimStory</div><h2>С возвращением!</h2>
+      <div class="field">${ICON.mail}<input type="email" placeholder="Почта"></div>
+      <div class="field">${ICON.lock}<input type="password" placeholder="Пароль"><span class="eye">${ICON.eye}</span></div>
+      <button class="forgot" onclick="go('f1')">Забыли пароль?</button>
+      <div class="sp"></div><button class="btn" onclick="go('ok')">Войти</button>
+      <button class="link" onclick="go('s1')">Нет аккаунта? <b>Начать</b></button></div>`;
+  }else if(step==='f1'){
+    h=`<div class="scr auth"><div class="qtop"><button class="back" onclick="go('login')">${ICON.back}</button></div>
+      <h2 style="margin-top:10px">Восстановить пароль</h2><div class="sub">Пришлём код в СМС</div>
+      <div class="field">${ICON.phone}<input type="tel" value="+7 " placeholder="+7"></div>
+      <div class="sp"></div><button class="btn" onclick="go('f2')">Получить код</button></div>`;
+  }else if(step==='f2'){
+    h=`<div class="scr auth"><div class="qtop"><button class="back" onclick="go('f1')">${ICON.back}</button></div>
+      <h2 style="margin-top:10px">Введи код из СМС</h2><div class="sub">Отправили на +7 ••• •• 45</div>
+      <div class="code"><input maxlength="1" value="4"><input maxlength="1" value="7"><input maxlength="1"><input maxlength="1"></div>
+      <div class="again">Новый код через 0:42</div>
+      <div class="sp"></div><button class="btn" onclick="go('f3')">Дальше</button></div>`;
+  }else if(step==='f3'){
+    h=`<div class="scr auth"><div class="qtop"><button class="back" onclick="go('f2')">${ICON.back}</button></div>
+      <h2 style="margin-top:10px">Новый пароль</h2>
+      <div class="field">${ICON.lock}<input type="password" placeholder="Новый пароль"><span class="eye">${ICON.eye}</span></div>
+      <div class="field">${ICON.lock}<input type="password" placeholder="Ещё раз"><span class="eye">${ICON.eye}</span></div>
+      <div class="sp"></div><button class="btn" onclick="go('ok')">Сохранить</button></div>`;
+  }else if(step==='ok'){
+    h=`<div class="scr ok"><div class="tick">${ICON.tick}</div><h2>Готово!</h2><div class="qs">Твоя история начинается</div>
+      <div class="sp" style="flex:0;height:60px"></div><button class="btn" style="margin-top:0" onclick="go('splash')">На главную</button></div>`;
+  }else{
+    const k=Q[step];
+    if(k==='name') h=`<div class="scr">${qtop(step)}<div class="q">Как тебя зовут?</div>
+      <div class="body"><div class="field">${ICON.user}<input id="nm" placeholder="Имя" value="${D.name}" oninput="D.name=this.value"></div>
+      <button class="btn" onclick="next()">Дальше</button></div></div>`;
+    if(k==='goal') h=`<div class="scr">${qtop(step)}<div class="q">Какая у тебя цель?</div><div class="body">
+      ${opt('goal','down','down','Похудеть')}${opt('goal','keep','same','Держать вес')}${opt('goal','up','up','Набрать вес')}</div></div>`;
+    if(k==='sex') h=`<div class="scr">${qtop(step)}<div class="q">Твой пол</div><div class="qs">Нужен, чтобы точно посчитать норму</div><div class="body"><div class="two">
+      ${opt('sex','f','fem','Женский')}${opt('sex','m','mal','Мужской')}</div></div></div>`;
+    if(k==='age') h=numScr(step,'age','Сколько тебе лет?','лет',14,99);
+    if(k==='h') h=numScr(step,'h','Твой рост','см',120,230);
+    if(k==='w') h=numScr(step,'w','Твой вес сейчас','кг',35,250);
+    if(k==='tw') h=numScr(step,'tw','Какой вес хочешь?','кг',35,250,
+      D.w>D.tw?`<div class="hint">−${D.w-D.tw} кг</div>`:'');
+    if(k==='act') h=`<div class="scr">${qtop(step)}<div class="q">Сколько ты двигаешься?</div><div class="body">
+      ${opt('act','sofa','sofa','Почти не двигаюсь','сижу дома или в офисе')}
+      ${opt('act','walk','walk','Немного','1–2 тренировки в неделю')}
+      ${opt('act','run','run','Средне','3–5 тренировок в неделю')}
+      ${opt('act','fire','fire','Много','каждый день')}</div></div>`;
+    if(k==='allergy') h=`<div class="scr">${qtop(step)}<div class="q">Есть аллергия?</div><div class="qs">Не будем советовать эти продукты</div>
+      <div class="body"><div class="chips"><button class="chip ${D.allergy.length?'':'on'}" onclick="tog('none')">Нет</button>
+      ${ALL.map(a=>`<button class="chip ${D.allergy.includes(a)?'on':''}" onclick="tog('${a}')">${a}</button>`).join('')}
+      <button class="chip add">+ Своё</button></div>
+      <button class="btn" onclick="save();go('result')">Дальше</button></div></div>`;
+  }
+  P.innerHTML=h;
+}
+const qp=new URLSearchParams(location.search);
+if(false&&qp.has('demo')){D={name:'Ди',goal:'down',sex:'f',age:25,h:165,w:70,tw:60,act:'walk',allergy:['Орехи']}}
+step=qp.get('s')??'splash'; if(/^\d+$/.test(step)) step=+step;
+render();
+if(step==='splash'&&!qp.has('s')) setTimeout(()=>go('s1'),2500);
+</script>
+</body>
+</html>
