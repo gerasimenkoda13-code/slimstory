@@ -26,7 +26,7 @@ jobs:
       - name: Файлы приложения
         run: |
           mkdir -p cap/www && cd cap
-          cp -r ../index.html ../start.html ../*.js ../manifest.webmanifest ../img ../icons ../vendor ../data www/
+          cp -r ../index.html ../start.html ../privacy.html ../*.js ../manifest.webmanifest ../img ../icons ../vendor ../data www/
           rm -f www/sw.js
           npm init -y >/dev/null
           npm i @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7 @capacitor-community/speech-recognition@7
