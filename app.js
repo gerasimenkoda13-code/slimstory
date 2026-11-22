@@ -1,7 +1,7 @@
 'use strict';
 // ---------- помощники ----------
 const $ = s => document.querySelector(s);
-const I = n => (typeof IMG !== 'undefined' && IMG[n]) || ('img/' + n + '.webp');
+const I = n => !n ? 'icons/pack.svg' : (typeof IMG !== 'undefined' && IMG[n]) || ('img/' + n + '.webp');
 const N = x => Math.round(x).toLocaleString('ru-RU');
 const W1 = x => (+x).toFixed(1).replace('.', ',');
 const D1 = x => (Math.round(x * 10) / 10).toLocaleString('ru-RU');
@@ -98,7 +98,7 @@ const app = () => $('#app');
 function go(h) { STK.push(h.replace(/^#\//, '')); onRoute(); }
 function root(h) { STK = [h.replace(/^#\//, '')]; onRoute(); }
 function back(n = 1) { STK.splice(Math.max(1, STK.length - n)); onRoute(); }
-function onRoute() { if (route()[0] !== 'add') addQ = ''; render(); }
+function onRoute() { if (route()[0] !== 'add') addQ = ''; if (route()[0] !== 'bar' && route()[0] !== 'label') barStop(); render(); }
 function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; $('#phone').appendChild(d); setTimeout(() => d.remove(), 2300); }
 // плавная перерисовка: меняем только то, что поменялось (без моргания)
 function morph(a, b) {
@@ -304,7 +304,7 @@ function scrAdd(m) {
   const M = MEALS.find(x => x.id === m) || MEALS[0], L = day(sel).meals[M.id], s = sumE(L);
   const tabs = ['Недавние', 'Избранное', 'Продукты', 'Рецепты'];
   return `<div class="scr anim" style="padding-bottom:110px">${topb(M.n, dTitle(sel))}
-  <div class="search">${IC.search}<input id="fq" placeholder="Найти продукт или марку" value="${esc(addQ)}" oninput="addQ=this.value;$('#fl').innerHTML=foodList('${M.id}')"><button class="cam" onclick="go('#/label')" aria-label="Сфоткать этикетку">${IC.cam()}</button></div>
+  <div class="search">${IC.search}<input id="fq" placeholder="Найти продукт или марку" value="${esc(addQ)}" oninput="addQ=this.value;$('#fl').innerHTML=foodList('${M.id}')"><button class="cam" onclick="go('#/bar')" aria-label="Сфоткать этикетку">${IC.cam()}</button></div>
   <button class="rowlink" onclick="go('#/cafe/${M.id}')"><span class="ci">${IC.fork}</span><b>Кафе и рестораны</b><span>меню с КБЖУ</span>${IC.chev}</button>
   <div class="tabs">${tabs.map((t, i) => `<button class="tab ${i === addTab ? 'on' : ''}" onclick="addTab=${i};addQ='';render(true)">${t}</button>`).join('')}</div>
   <div class="sum">Добавлено ${M.v}<span>${N(s.k)} ккал</span></div>
@@ -327,12 +327,19 @@ function foodList(m) {
   else if (addTab === 0) L = S.recent.map(id => FD[id] || S.my.find(x => x.id === id)).filter(Boolean);
   else if (addTab === 1) L = S.favs.map(id => FD[id] || S.my.find(x => x.id === id)).filter(Boolean);
   else L = S.my.concat(FOODS, PRODUCE);
-  if (!L.length) return `<div class="empty">${qq ? 'Ничего не нашлось. Попробуй сфоткать этикетку' : addTab === 1 ? 'Нажми сердечко на продукте, и он появится здесь' : 'Пока пусто'}</div>`;
-  return `<div class="grid">${L.map(f => foodTile(f, m)).join('')}</div>`;
+  let base = '';
+  if (qq) {
+    if (!OFF) offLoad().then(() => { const fl = $('#fl'); if (fl && addQ.trim().toLowerCase() === qq) fl.innerHTML = foodList(m); });
+    const have = new Set(L.map(f => f.code).filter(Boolean)), B = offSearch(qq).filter(f => !have.has(f.code));
+    if (B.length) base = `<div class="sec" style="margin-left:0;margin-right:0">Из базы товаров<span>Open Food Facts</span></div><div class="grid">${B.map(f => foodTile(f, m)).join('')}</div>`;
+    else if (!OFF) base = `<div class="empty">Ищу в базе товаров…</div>`;
+  }
+  if (!L.length && !base) return `<div class="empty">${qq ? 'Ничего не нашлось. Отсканируй штрихкод или перепиши с упаковки' : addTab === 1 ? 'Нажми сердечко на продукте, и он появится здесь' : 'Пока пусто'}</div>`;
+  return (L.length ? `<div class="grid">${L.map(f => foodTile(f, m)).join('')}</div>` : '') + base;
 }
 function favF(id) { const j = S.favs.indexOf(id); j >= 0 ? S.favs.splice(j, 1) : S.favs.push(id); save(); const fl = $('#fl'); if (fl) { const m = route()[1]; fl.innerHTML = foodList(m); } }
 function delE(m, j) { day(sel).meals[m].splice(j, 1); save(); render(true); }
-function findFood(id) { return FD[id] || S.my.find(x => x.id === id); }
+function findFood(id) { return FD[id] || S.my.find(x => x.id === id) || (typeof OFFC !== 'undefined' && OFFC[id]); }
 
 let QS = null;
 function qtySheet(id, m, srcNote) {
@@ -353,8 +360,9 @@ function drawQty() {
 function updQty() { const f = findFood(QS.id), r = QS.g / 100; $('#qtot').innerHTML = totHTML({k: f.k * r, p: f.p * r, f: f.f * r, c: f.c * r}); $('#qpor').textContent = `≈ ${D1(QS.g / f.por)} порции`; document.querySelectorAll('.presets .pill').forEach(b => b.classList.toggle('on', parseInt(b.textContent) === QS.g)); }
 function totHTML(t) { return `<div class="t k"><b>${N(t.k)}</b><small>ккал</small></div><div class="t p"><b>${N(t.p)}</b><small>белки</small></div><div class="t f"><b>${N(t.f)}</b><small>жиры</small></div><div class="t c"><b>${N(t.c)}</b><small>углев.</small></div>`; }
 function addQty() {
-  const f = findFood(QS.id), g = QS.mode === 'p' ? QS.por * f.por : QS.g;
+  const f = keepFood(findFood(QS.id)), g = QS.mode === 'p' ? QS.por * f.por : QS.g;
   if (!g) { toast('Укажи вес'); return; }
+  QS.id = f.id;
   day(sel).meals[QS.m].push(entryF(f, g));
   S.recent = [QS.id].concat(S.recent.filter(x => x !== QS.id)).slice(0, 12);
   save(); closeSheet(); toast(`Добавлено: ${f.n}, ${N(f.k * g / 100)} ккал`); render(true);
@@ -718,7 +726,8 @@ function scrSettings() {
   <div class="sec">Приёмы пищи</div><div class="card" style="padding-top:2px;padding-bottom:2px">${MEALS.map(m => `<div class="row"><span style="display:flex;align-items:center;gap:10px"><span class="ico" style="width:34px;height:34px;background:${m.bg}">${mic(m, 20)}</span>${m.n}</span>${sw(S.mealsOn[m.id], `S.mealsOn['${m.id}']=S.mealsOn['${m.id}']?0:1;save();render(true)`)}</div>`).join('')}</div>
   <div class="sec">Трекеры</div><div class="card" style="padding-top:2px;padding-bottom:2px"><div class="row"><span>Стакан воды</span><span class="v">${GL()} мл</span></div><button class="row" onclick="numSheetW()"><span>Норма воды</span><span class="v">${L1(S.waterGoal)} л</span></button><div class="row"><span>Овощи</span><span class="v">5 в день</span></div><div class="row"><span>Фрукты</span><span class="v">5 в день</span></div></div>
   <div class="sec">Синхронизация</div><div class="card" style="padding-top:2px;padding-bottom:2px"><div class="row"><div>Apple Здоровье<small>шаги и активность в калориях</small></div>${sw(S.sync.apple, `S.sync.apple=S.sync.apple?0:1;save();render(true);toast('Заработает в приложении')`)}</div><div class="row"><div>Health Connect (Android)<small>шаги и активность в калориях</small></div>${sw(S.sync.android, `S.sync.android=S.sync.android?0:1;save();render(true);toast('Заработает в приложении')`)}</div></div>
-  <div style="padding:22px 20px 0"><button class="btn w" onclick="resetAll()">Начать прототип заново</button></div></div>`;
+  <div style="padding:22px 20px 0"><button class="btn w" onclick="resetAll()">Стереть все данные</button></div>
+  <div class="muted" style="font-size:12px;text-align:center;padding:16px 20px 0">Данные о товарах: Open Food Facts, лицензия ODbL</div></div>`;
 }
 function numSheet(key, title, unit, step) {
   let v = S.goal[key];
@@ -728,7 +737,7 @@ function numSheet(key, title, unit, step) {
   $('#nsb').onclick = () => { S.goal[key] = v; save(); closeSheet(); render(true); };
 }
 function numSheetW() { let v = S.waterGoal; window._nw = d => { v = Math.max(500, v + d); $('#nwv').textContent = L1(v); }; sheet(`<div class="sh"><div><b>Норма воды</b></div></div><div style="display:flex;justify-content:center;margin-top:20px"><div class="step"><button onclick="_nw(-100)">−</button><b id="nwv" style="font-size:40px;min-width:110px">${L1(v)}</b><button onclick="_nw(100)">+</button></div></div><div class="muted" style="text-align:center">литра</div><div style="padding:18px 20px 0"><button class="btn" id="nwb">Сохранить</button></div>`); $('#nwb').onclick = () => { S.waterGoal = v; save(); closeSheet(); render(true); }; }
-function resetAll() { sheet(`<div class="sh"><div><b>Стереть все записи?</b><small>Прототип вернётся к началу</small></div></div><div style="display:flex;gap:10px;padding:18px 20px 0"><button class="btn w" onclick="closeSheet()">Отмена</button><button class="btn" onclick="try{localStorage.removeItem(KEY)}catch(e){};S=fresh();closeSheet();root('#/home');render()">Стереть</button></div>`); }
+function resetAll() { sheet(`<div class="sh"><div><b>Стереть все записи?</b><small>Записи о еде, воде и весе удалятся</small></div></div><div style="display:flex;gap:10px;padding:18px 20px 0"><button class="btn w" onclick="closeSheet()">Отмена</button><button class="btn" onclick="try{localStorage.removeItem(KEY)}catch(e){};S=fresh();closeSheet();root('#/home');render()">Стереть</button></div>`); }
 
 const BODY = ['Талия', 'Бёдра', 'Грудь', 'Обхват бедра', 'Обхват руки', 'Процент жира'];
 function bodyLast() { const L = S.body || []; return L[L.length - 1]; }
@@ -841,22 +850,26 @@ function snap() {
   if (labMode === 1) { setTimeout(() => { toast('В базе не нашлось, сфоткай этикетку'); labTab(0); }, 400); return; }
   setTimeout(() => { go('#/labelres'); }, 300);
 }
+let LB = {};
 function scrLabelRes() {
-  const f = {k: 66, p: 9.5, f: 2, c: 3.5};
-  const fld = (l, id, v, u = '') => `<div><div class="muted" style="font-size:13px;margin-bottom:4px">${l}</div><label style="display:flex;align-items:center;background:#f6f3ff;border-radius:14px;padding:11px 14px;font-weight:800;font-size:16px"><input id="${id}" ${v === 'Название марки' ? 'placeholder="Например, Простоквашино"' : `value="${v}"`} style="flex:1;border:0;background:none;outline:0;font-weight:800;min-width:0">${u ? `<span class="muted">${u}</span>` : IC.pen()}</label></div>`;
-  return `<div class="scr anim" style="padding-bottom:110px">${topb('Свой продукт', 'с этикетки')}
-  <div class="card" style="display:flex;gap:12px;align-items:center"><div style="width:74px;height:90px;border-radius:12px;background:#f6f3ff;display:flex;align-items:center;justify-content:center;flex:none"><img src="${I('М1_Греческий йогурт')}" style="width:60px;height:60px;object-fit:contain" alt=""></div><div style="flex:1;min-width:0"><span class="ok">${IC.check()} Данные с упаковки</span><div style="margin-top:8px">${fld('Название', 'ln', 'Йогурт греческий 2%')}</div></div></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:12px">${fld('Марка *', 'lb', 'Название марки')}<div class="g2" style="margin:0">${fld('Вес упаковки', 'lw', 140, 'г')}${fld('Порция', 'lp', 140, 'г')}</div></div>
+  const L = LB || {}, val = x => x === undefined || x === null || x === '' ? '' : String(x).replace('.', ',');
+  const fld = (l, id, v, u = '', ph = '') => `<div><div class="muted" style="font-size:13px;margin-bottom:4px">${l}</div><label style="display:flex;align-items:center;background:#f6f3ff;border-radius:14px;padding:11px 14px;font-weight:800;font-size:16px"><input id="${id}" ${u ? 'inputmode="decimal"' : ''} value="${esc(v)}" placeholder="${ph}" style="flex:1;border:0;background:none;outline:0;font-weight:800;min-width:0">${u ? `<span class="muted">${u}</span>` : IC.pen()}</label></div>`;
+  return `<div class="scr anim" style="padding-bottom:110px">${topb('Свой продукт', L.code ? 'штрихкод ' + L.code : 'с упаковки')}
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">${fld('Название', 'ln', L.n || '', '', 'Например, Творог 5%')}${fld('Марка *', 'lb', L.mk || '', '', 'Например, Простоквашино')}<div class="g2" style="margin:0">${fld('Вес упаковки', 'lw', val(L.w), 'г')}${fld('Порция', 'lp', val(L.por), 'г')}</div></div>
   <div class="sec">Пищевая ценность<span>в 100 г</span></div>
-  <div class="card"><div class="g2" style="margin:0">${fld('Калории', 'lk', D1(f.k), 'ккал')}${fld('Белки', 'lpr', D1(f.p), 'г')}${fld('Жиры', 'lf', D1(f.f), 'г')}${fld('Углеводы', 'lc', D1(f.c), 'г')}</div></div></div>
-  <div class="btns"><button class="btn w" onclick="back()">Переснять</button><button class="btn" onclick="labSave()">Сохранить</button></div>`;
+  <div class="card"><div class="g2" style="margin:0">${fld('Калории', 'lk', val(L.k), 'ккал')}${fld('Белки', 'lpr', val(L.p), 'г')}${fld('Жиры', 'lf', val(L.f), 'г')}${fld('Углеводы', 'lc', val(L.c), 'г')}</div></div></div>
+  <div class="btns"><button class="btn w" onclick="back()">Отмена</button><button class="btn" onclick="labSave()">Сохранить</button></div>`;
 }
 function labSave() {
   const v = id => parseFloat(String($('#' + id).value).replace(',', '.')) || 0;
   const id = 'my' + Date.now();
   const mk = $('#lb').value.trim(); if (!mk) { toast('Напиши марку с упаковки'); $('#lb').focus(); return; }
-  S.my.unshift({id, mk, n: $('#ln').value || 'Мой продукт', i: 'М1_Греческий йогурт', k: v('lk'), p: v('lpr'), f: v('lf'), c: v('lc'), por: v('lp') || 100, pn: '1 порция', brand: 'с упаковки'});
-  save(); toast('Продукт сохранён'); addTab = 2; back(2);
+  const n = $('#ln').value.trim(); if (!n) { toast('Напиши название'); $('#ln').focus(); return; }
+  if (!$('#lk').value.trim()) { toast('Напиши калории с упаковки'); $('#lk').focus(); return; }
+  const por = v('lp') || v('lw') || 100, code = (LB && LB.code) || '';
+  if (code) S.my = S.my.filter(x => x.code !== code);
+  S.my.unshift({id, code, mk, n, i: '', k: v('lk'), p: v('lpr'), f: v('lf'), c: v('lc'), por, pn: v('lp') ? '1 порция' : v('lw') ? '1 упаковка' : '100 г', brand: 'с упаковки'});
+  LB = {}; save(); toast('Продукт сохранён'); addTab = 2; back(STK[STK.length - 2] === 'bar' ? 2 : 1);
 }
 
 // ---------- кафе ----------
@@ -934,7 +947,7 @@ function render(keep) {
   closeSheet(); closePlus();
   const R = {home: scrHome, add: () => scrAdd(a || 'b'), recipes: scrRecipes, recipe: () => scrRecipe(a, b), coll: () => scrColl(a), 'home-food': scrHomeFood,
     diets: scrDiets, diet: () => scrDiet(a), quiz: scrQuiz, quizres: scrQuizRes, reports: scrReports, weight: scrWeight, me: scrMe, settings: scrSettings,
-    body: scrBody, prefs: scrPrefs, scan: scrScan, scanres: scrScanRes, label: scrLabel, labelres: scrLabelRes, cafe: () => scrCafe(a), cafem: () => scrCafeMenu(a, b), assistant: scrAssistant};
+    body: scrBody, prefs: scrPrefs, scan: scrScan, scanres: scrScanRes, label: scrBar, bar: scrBar, labelres: scrLabelRes, cafe: () => scrCafe(a), cafem: () => scrCafeMenu(a, b), assistant: scrAssistant};
   const html = (R[r] || scrHome)();
   if (keep && app().firstElementChild) {
     const nw = htmlEl(html); nw.querySelectorAll('.anim').forEach(e => e.classList.remove('anim'));
@@ -942,6 +955,7 @@ function render(keep) {
     nw.id = 'app'; morph(app(), nw);
     const n = $('.scr'); if (n && n.scrollTop !== y) n.scrollTop = y;
   } else app().innerHTML = html;
+  if (r === 'bar' || r === 'label') setTimeout(barStart, 50);
 }
 // первый запуск: сначала заставка и анкета
 let HAS = null; try { HAS = localStorage.getItem(KEY) || localStorage.getItem('ss_start'); } catch (e) {}
