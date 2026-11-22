@@ -489,18 +489,6 @@ function addRec(id, m) {
 }
 
 // ---------- что есть дома ----------
-function scrHomeFood() {
-  const R = [['Омлет с помидорами и сыром', 'Д1_Омлет', '10 мин · 290 ккал', null, 'r_omlet'], ['Сырники', 'Д1_Сырники', '20 мин · 342 ккал', null, 'r_syr'], ['Кабачок, запечённый с сыром', 'О1_Кабачок', '25 мин · 180 ккал', null, ''], ['Запеканка творожная', 'Д9_Чизкейк', '40 мин · 260 ккал', 'манка', '']];
-  return `<div class="scr anim">${topb('Что есть дома?')}
-  <div class="search"><input id="hf" placeholder="Продукт, марка, сколько есть…" onkeydown="if(event.key==='Enter')hfAdd()"><button class="cam" onclick="hfAdd()" aria-label="Добавить">${IC.plus('#fff', 18)}</button></div>
-  <div class="sec">У меня дома<span>${S.home.length} продуктов</span></div>
-  <div class="card" style="padding-top:2px;padding-bottom:2px">${S.home.map((h, j) => `<div class="ing">${pic(h[1], h[0], 40)}<div class="nm"><b>${esc(h[0])}</b></div><button class="g" onclick="hfAmt(${j})">${esc(h[2])} ${IC.pen('#a49dbb', 12)}</button><button class="del" onclick="S.home.splice(${j},1);save();render(true)" aria-label="Убрать">${IC.x()}</button></div>`).join('') || '<div class="empty" style="margin:14px">Добавь продукты сверху</div>'}</div>
-  <div class="sec">Можно приготовить<span>${R.length} рецепта</span></div>
-  ${R.map(([n, i, s, buy, id]) => `<button class="dl" onclick="${id ? `go('#/recipe/${id}')` : `toast('Рецепт появится в приложении')`}"><div class="im"><img src="${I(i)}" alt=""></div><div class="tx"><b>${n}</b><small>${s}</small><span class="mtag ${buy ? 'o' : ''}">${buy ? 'докупить: ' + buy : 'всё есть дома'}</span></div>${IC.chev}</button>`).join('')}</div>`;
-}
-function hfAdd() { const v = $('#hf').value.trim(); if (!v) return; const f = FOODS.find(x => x.n.toLowerCase().startsWith(v.toLowerCase().slice(0, 4))); S.home.unshift([v, f ? f.i : '', '1 шт']); save(); render(true); }
-function hfAmt(j) { sheet(`<div class="sh"><div><b>${esc(S.home[j][0])}</b><small>сколько осталось</small></div></div><div style="padding:14px 20px 0"><div class="search" style="margin:0"><input id="ha" value="${esc(S.home[j][2])}"></div><button class="btn" style="margin-top:14px" onclick="S.home[${j}][2]=$('#ha').value;save();closeSheet();render(true)">Сохранить</button></div>`); }
-
 // ---------- диеты ----------
 let dietLen = 21, dietTag = 'Все';
 const lenName = n => { const f = DIET_LEN.find(x => x[0] === n); if (f) return f[1].toLowerCase(); const w = Math.round(n / 7); return `${w} ${w % 10 === 1 && w !== 11 ? 'неделя' : w % 10 >= 2 && w % 10 <= 4 && (w < 12 || w > 14) ? 'недели' : 'недель'}`; };
@@ -800,12 +788,6 @@ function noSheet() { sheet(`<div class="sh"><div><b>Что не ешь?</b></div
 
 // ---------- скриншот ----------
 let SC = null;
-function scrScan() {
-  return `<div class="scr anim">${topb('Скриншот')}
-  <div class="g2" style="margin-top:18px">
-  <button class="card" style="margin:0;text-align:left" onclick="scanGo('recipe')"><div style="background:#f6f3ff;border-radius:14px;padding:10px;height:170px;position:relative;overflow:hidden"><img src="${I('Д1_Сырники')}" style="width:100%;height:96px;object-fit:contain" alt=""><i style="display:block;height:6px;border-radius:3px;background:#ddd6f3;margin:6px 0 4px;width:80%"></i><i style="display:block;height:6px;border-radius:3px;background:#ddd6f3;width:60%"></i><i style="display:block;height:6px;border-radius:3px;background:#ddd6f3;margin-top:4px;width:70%"></i></div><b style="display:block;margin-top:8px">Рецепт</b><small class="muted">сырники из блога</small></button>
-  <button class="card" style="margin:0;text-align:left" onclick="scanGo('product')"><div style="background:#f6f3ff;border-radius:14px;padding:10px;height:170px"><img src="${I('М1_Греческий йогурт')}" style="width:100%;height:96px;object-fit:contain" alt=""><div style="background:#fff;border-radius:8px;padding:5px;font-size:10px;font-weight:800;margin-top:6px">Б 9,5 · Ж 2 · У 3,5<br>66 ккал / 100 г</div></div><b style="display:block;margin-top:8px">Продукт</b><small class="muted">йогурт с этикеткой</small></button></div></div>`;
-}
 function scanGo(t) { SC = t === 'recipe' ? {t, por: 3, save: 1, m: 'l', ing: [['Творог 5%', 'М1_Творог в пачке', 400, 121, 17.2, 5, 1.8], ['Яйцо', 'М1_Яйца', 50, 157, 12.7, 11.5, 0.7], ['Мука', '', 60, 342, 10, 1, 70], ['Сахар', '', 20, 399, 0, 0, 99.8], ['Сметана 15%', 'М1_Сметана', 60, 162, 2.6, 15, 3]]} : {t, m: 's'}; go('#/scanres'); }
 function scrScanRes() {
   if (!SC) return scrScan();
@@ -878,6 +860,7 @@ function scrLabelRes() {
   const L = LB || {}, val = x => x === undefined || x === null || x === '' ? '' : String(x).replace('.', ',');
   const fld = (l, id, v, u = '', ph = '') => `<div><div class="muted" style="font-size:13px;margin-bottom:4px">${l}</div><label style="display:flex;align-items:center;background:#f6f3ff;border-radius:14px;padding:11px 14px;font-weight:800;font-size:16px"><input id="${id}" ${u ? 'inputmode="decimal"' : ''} value="${esc(v)}" placeholder="${ph}" style="flex:1;border:0;background:none;outline:0;font-weight:800;min-width:0">${u ? `<span class="muted">${u}</span>` : IC.pen()}</label></div>`;
   return `<div class="scr anim" style="padding-bottom:110px">${topb('Свой продукт', L.code ? 'штрихкод ' + L.code : 'с упаковки')}
+  <button class="rowlink" onclick="labPhoto()"><span class="ci" style="background:#efe9ff">${IC.cam('#6a4be0', 20)}</span><b>Заполнить по фото</b><span>сфоткай состав на упаковке</span>${IC.chev}</button>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">${fld('Название', 'ln', L.n || '', '', 'Например, Творог 5%')}${fld('Марка *', 'lb', L.mk || '', '', 'Например, Простоквашино')}<div class="g2" style="margin:0">${fld('Вес упаковки', 'lw', val(L.w), 'г')}${fld('Порция', 'lp', val(L.por), 'г')}</div></div>
   <div class="sec">Пищевая ценность<span>в 100 г</span></div>
   <div class="card"><div class="g2" style="margin:0">${fld('Калории', 'lk', val(L.k), 'ккал')}${fld('Белки', 'lpr', val(L.p), 'г')}${fld('Жиры', 'lf', val(L.f), 'г')}${fld('Углеводы', 'lc', val(L.c), 'г')}</div></div></div>
@@ -912,52 +895,6 @@ function scrCafeMenu(id, m) {
   <div class="btns"><button class="btn" onclick="back(2)">Готово</button></div>`;
 }
 function qtyCafe(fid, g, m) { qtySheet(fid, m, 'КБЖУ с сайта кафе'); QS.g = g; drawQty(); }
-
-// ---------- помощник ----------
-let AS = null;
-function scrAssistant() {
-  if (!AS) AS = {step: 0, cottage: -1, milk: -1, m: 's', items: null, msgs: []};
-  const wave = [...Array(18)].map((_, i) => `<i style="height:${6 + Math.abs(Math.sin(i * 1.3)) * 16}px"></i>`).join('');
-  let h = '';
-  if (AS.step >= 1) h += `<div class="bub me"><div class="wave">${wave}<span style="font-size:12px;margin-left:6px">0:06</span></div>Творог с бананом, ложка мёда и кофе с молоком</div>
-  <div class="bub ai">Банан, мёд и кофе поняла. Уточни два продукта:</div>
-  <div class="ask"><b><i>?</i>Какой творог?</b><div class="wrap">${['5% «Марка» · с упаковки', '9%', '2%', 'обезжиренный'].map((o, j) => `<button class="pill ${AS.cottage === j ? 'on' : ''}" onclick="AS.cottage=${j};asCheck()">${o}</button>`).join('')}<button class="pill" onclick="go('#/label')" aria-label="Сфоткать">${IC.cam('#6b6385', 16)}</button></div></div>
-  <div class="ask"><b><i>?</i>Молоко какой жирности?</b><div class="wrap">${['1,5%', '2,5%', '3,2%', 'растительное'].map((o, j) => `<button class="pill ${AS.milk === j ? 'on' : ''}" onclick="AS.milk=${j};asCheck()">${o}</button>`).join('')}</div></div>`;
-  if (!AS.step && !AS.msgs.length) h = `<div class="bub ai">Что ты съела? Скажи или напиши</div>`;
-  AS.msgs.forEach(x => h += x);
-  if (AS.items) {
-    const s = sumE(AS.items);
-    h += `<div class="ask"><b>Итого ${N(s.k)} ккал</b>${AS.items.map(e => `<div class="ing">${pic(e.i, e.n, 36)}<div class="nm"><b style="font-size:14px">${esc(e.n)}</b><small>${N(e.g)} г</small></div><div class="kc">${N(e.k)}</div></div>`).join('')}
-    <div class="chips" style="padding:0;margin-top:8px">${MEALS.map(m => `<button class="chip ${AS.m === m.id ? 'pri' : ''}" onclick="AS.m='${m.id}';render(true)">${m.n}</button>`).join('')}</div>
-    <button class="btn" style="margin-top:12px;height:48px" onclick="asAdd()">Добавить ${MEALS.find(m => m.id === AS.m).v}</button></div>`;
-  }
-  return `<div class="scr anim" id="asc" style="padding-bottom:110px">${topb('Помощник')}<div class="chat">${h}</div></div>
-  <div class="inbar"><div class="search"><input id="ain" placeholder="Напиши или скажи…" onkeydown="if(event.key==='Enter')asText()"></div><button class="mic ${AS.rec ? 'rec' : ''}" onclick="asMic()" aria-label="Сказать">${AS.rec ? IC.send : IC.mic()}</button></div>`;
-}
-function asScroll() { const s = $('#asc'); if (s) s.scrollTop = s.scrollHeight; }
-function asMic() {
-  const v = $('#ain') && $('#ain').value.trim(); if (v) { asText(); return; }
-  if (AS.step >= 1) { toast('Напиши, что ещё съела'); return; }
-  AS.rec = 1; render(true); setTimeout(() => { AS.rec = 0; AS.step = 1; render(true); asScroll(); }, 1600);
-}
-function asCheck() {
-  if (AS.cottage >= 0 && AS.milk >= 0) {
-    const ck = [[121, 17.2, 5, 1.8, 'Творог 5%'], [159, 16.7, 9, 2, 'Творог 9%'], [104, 18, 2, 3.3, 'Творог 2%'], [79, 16.5, 0.6, 1.3, 'Творог обезжиренный']][AS.cottage];
-    const mk = [[44, 3, 1.5, 4.7], [52, 2.8, 2.5, 4.7], [58, 2.9, 3.2, 4.7], [45, 1, 1.5, 6.5]][AS.milk];
-    const e = (n, i, g, k, p, f, c) => ({n, i, g, k: k * g / 100, p: p * g / 100, f: f * g / 100, c: c * g / 100});
-    AS.items = [e(ck[4], 'М1_Творог в пачке', 150, ck[0], ck[1], ck[2], ck[3]), e('Банан', 'tr_banana', 120, 96, 1.5, 0.2, 21), e('Мёд', 'М2_Мёд', 12, 304, 0.3, 0, 82), e('Кофе с молоком', 'Д10_Латте', 250, mk[0] * .2 + 1, mk[1] * .2, mk[2] * .2, mk[3] * .2)];
-  }
-  render(true); asScroll();
-}
-function asText() {
-  const v = $('#ain').value.trim(); if (!v) return;
-  const low = v.toLowerCase(), found = FOODS.filter(f => low.includes(f.n.toLowerCase().split(' ')[0].slice(0, Math.min(5, f.n.length))));
-  AS.msgs.push(`<div class="bub me">${esc(v)}</div>`);
-  if (found.length) { AS.msgs.push(`<div class="bub ai">Нашла: ${found.map(f => f.n.toLowerCase()).join(', ')}. Взяла обычную порцию, граммы можно поменять потом.</div>`); AS.items = found.map(f => entryF(f, f.por)); }
-  else AS.msgs.push(`<div class="bub ai">Не узнала продукт. Напиши по-другому, например «омлет и капучино».</div>`);
-  render(true); asScroll();
-}
-function asAdd() { AS.items.forEach(e => day(sel).meals[AS.m].push(e)); save(); toast(`Добавлено ${MEALS.find(m => m.id === AS.m).v}`); AS = null; root('#/home'); }
 
 // ---------- маршруты ----------
 function route() { return STK[STK.length - 1].split('/'); }
