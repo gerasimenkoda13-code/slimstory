@@ -10,7 +10,7 @@ for sub in ('blyuda', 'frukty_ovoshchi', 'magazin'):
 TL = dict(zip('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', ['a','b','v','g','d','e','e','zh','z','i','y','k','l','m','n','o','p','r','s','t','u','f','h','c','ch','sh','sch','','y','','e','yu','ya']))
 slug = lambda s: re.sub(r'[^a-z0-9]+', '-', ''.join(TL.get(c, c) for c in s.lower())).strip('-')
 m = json.loads(re.search(r'const IMG=(\{.*?\});', open(os.path.join(R, 'imgmap.js'), encoding='utf-8').read(), re.S).group(1))
-code = ''.join(open(os.path.join(R, f), encoding='utf-8').read() for f in ('app.js', 'data.js', 'recipes.js', 'off.js', 'start.html') if os.path.exists(os.path.join(R, f)))
+code = ''.join(open(os.path.join(R, f), encoding='utf-8').read() for f in ('app.js', 'data.js', 'recipes.js', 'diets.js', 'share.js', 'off.js', 'start.html') if os.path.exists(os.path.join(R, f)))
 names = set(re.findall(r'["\']([ДФОМТ]\d+_[^"\']+)["\']', code))
 missing = []
 for n in sorted(names - set(m)):

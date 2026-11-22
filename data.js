@@ -170,24 +170,6 @@ const COLL = {
   'Завтраки': 'завтрак', 'Супы': 'суп', 'Десерты': 'десерт', 'Напитки': 'напиток',
 };
 
-// Диеты: из чего собирается каждый приём пищи (рецепты), план на день меняется каждый день
-const DIETS = [
-  {id:'d1', n:'Похудение без голода', i:'Д7_Салат с курицей', tag:'похудение', tc:['#dcf7ec','#159a6a'], kcal:1500, loss:'−2…3 кг за 3 недели',
-   desc:'Сытные блюда с белком и клетчаткой, 4 приёма пищи, без запретов на любимое.',
-   pool:{b:['r_oat','r_tvb','r_eggs','r_kefir','r_pancake'], l:['r_salch','r_chsoup','r_fish','r_lent','r_buck'], s:['p:apple','r_smoo','p:mand','r_hum','p:pear'], d:['r_cod','r_veg','r_salm','r_caul','r_greek']}},
-  {id:'d2', n:'Белковая для мышц', i:'Д3_Стейк из говядины', tag:'набор мышц', tc:['#ffe8dc','#c4561c'], kcal:2200, loss:'+1…2 кг мышц за месяц',
-   desc:'Много белка в каждом приёме пищи, чтобы мышцам было из чего расти.',
-   pool:{b:['r_syr','r_omlet','r_tvb','r_ncake'], l:['r_curry','r_turk','r_bowl','r_shaw'], s:['r_gran','r_tuna','p:banana','r_choc'], d:['r_steak','r_air','r_salm','r_pasta']}},
-  {id:'d3', n:'Интервальное 16/8', i:'Д1_Овсяная каша', tag:'голодание', tc:['#ece6ff','#6a4be0'], kcal:1600, loss:'−1…2 кг за 3 недели',
-   desc:'Ешь в течение 8 часов, остальные 16 часов только вода и чай.',
-   pool:{l:['r_oat','r_toast','r_bowl','r_quin'], s:['r_gran','p:apple','r_hum'], d:['r_curry','r_salm','r_turk','r_air']}},
-  {id:'d4', n:'Средиземноморская', i:'Д4_Лосось запечённый', tag:'здоровье', tc:['#eef3ff','#4a6fd8'], kcal:1700, loss:'−1…2 кг за месяц',
-   desc:'Рыба, овощи, крупы и оливковое масло. Подходит надолго.',
-   pool:{b:['r_toast','r_gran','r_eggs','r_capr'], l:['r_quin','r_greek','r_shrimp','r_lent'], s:['p:grape','p:peach','r_hum'], d:['r_salm','r_cod','r_veg','r_bowl']}},
-  {id:'d5', n:'Мало углеводов', i:'Д7_Салат с авокадо', tag:'похудение', tc:['#dcf7ec','#159a6a'], kcal:1400, loss:'−2…3 кг за 3 недели',
-   desc:'Меньше хлеба, круп и сладкого, больше белка и овощей.',
-   pool:{b:['r_omlet','r_eggs','r_tvb'], l:['r_salch','r_shrimp','r_greek','r_caul'], s:['r_capr','p:cuc','r_choc'], d:['r_air','r_cod','r_salm','r_steak']}},
-];
 const DIET_LEN = [[21, '3 недели'], [30, 'Месяц'], [182, 'Полгода']];
 
 const QUIZ = [
