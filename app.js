@@ -879,23 +879,6 @@ function labSave() {
 }
 
 // ---------- кафе ----------
-function scrCafe(m) {
-  const M = MEALS.find(x => x.id === m) || MEALS[0];
-  return `<div class="scr anim">${topb('Кафе и рестораны', 'для ' + M.n.toLowerCase().replace('завтрак', 'завтрака').replace('обед', 'обеда').replace('ужин', 'ужина').replace('перекус', 'перекуса'))}
-  <div class="search">${IC.search}<input placeholder="Название кафе, ресторана, бара" oninput="document.querySelectorAll('[data-cafe]').forEach(e=>e.style.display=fits(e.dataset.cafe,this.value)?'':'none')"></div>
-  <button class="rowlink" onclick="locSheet()" style="background:none;padding-left:0">${IC.pin}<b style="font-size:14px">Рядом с: ${esc(S.addr || 'ул. Ленина, 12')}</b><span></span><b style="color:#7c5cff;font-size:14px">Изменить</b></button>
-  ${CAFES.map(c => `<button class="dl" data-cafe="${esc(c.n)}" onclick="go('#/cafem/${c.id}/${M.id}')"><div class="im" style="width:64px;height:64px;border-radius:18px"><img src="${I(c.i)}" alt=""></div><div class="tx"><b>${c.n}</b><small>${c.d} · ${c.km}</small></div>${IC.chev}</button>`).join('')}</div>`;
-}
-function locSheet() { sheet(`<div class="sh"><div><b>Где ты?</b><small>чтобы показать кафе рядом</small></div></div><div style="padding:14px 20px 0"><button class="btn" onclick="S.addr='моё местоположение';save();closeSheet();render(true);toast('В приложении спросим разрешение')">Определить автоматически</button><div class="search" style="margin:12px 0 0"><input id="ad" placeholder="Или введи адрес"></div><button class="btn w" style="margin-top:12px" onclick="S.addr=$('#ad').value||S.addr;save();closeSheet();render(true)">Сохранить адрес</button></div>`); }
-function scrCafeMenu(id, m) {
-  const c = CAFES.find(x => x.id === id);
-  return `<div class="scr anim" style="padding-bottom:110px"><div class="hero" style="height:200px"><button class="back" onclick="back()" aria-label="Назад">${IC.back}</button><img src="${I(c.hero)}" style="width:150px;height:150px;margin-top:40px" alt=""></div>
-  <div style="padding:14px 20px 0"><div style="font-size:24px;font-weight:900">${c.n}</div><div class="muted" style="font-size:13px">${c.d} · ${c.km}</div></div>
-  <div class="card" style="padding-top:2px;padding-bottom:2px">${c.menu.map(([fid, g]) => { const f = FD[fid]; return `<div class="ing" onclick="qtyCafe('${fid}',${g},'${m}')" style="cursor:pointer">${pic(f.i, f.n, 56)}<div class="nm"><b>${f.n}</b><small>${g} г</small></div><div style="text-align:right"><b class="v">${N(f.k * g / 100)}</b><small class="muted" style="display:block;font-size:12px">ккал</small></div><span class="pbtn">${IC.plus()}</span></div>`; }).join('')}</div></div>
-  <div class="btns"><button class="btn" onclick="back(2)">Готово</button></div>`;
-}
-function qtyCafe(fid, g, m) { qtySheet(fid, m, 'КБЖУ с сайта кафе'); QS.g = g; drawQty(); }
-
 // ---------- маршруты ----------
 function route() { return STK[STK.length - 1].split('/'); }
 let lastScroll = {};
