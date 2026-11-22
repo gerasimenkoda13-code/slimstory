@@ -1,0 +1,57 @@
+# Сборка приложения для Android (Capacitor). Запуск: тег android-<версия>, например android-1.0.0
+# На выходе неподписанный APK. Подпись делается отдельно своим ключом (ключ в GitHub не хранится).
+name: android
+on:
+  push:
+    tags: ['android-*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: 21}
+      - name: Версия
+        run: |
+          V="${GITHUB_REF_NAME#android-}"; case "$V" in [0-9]*) ;; *) V=1.0.0;; esac
+          echo "VER=$V" >> $GITHUB_ENV
+          echo "CODE=$(echo $V | awk -F. '{print $1*10000+$2*100+$3}')" >> $GITHUB_ENV
+      - name: Файлы приложения
+        run: |
+          mkdir -p cap/www && cd cap
+          cp -r ../index.html ../start.html ../*.js ../manifest.webmanifest ../img ../icons ../vendor ../data www/
+          rm -f www/sw.js
+          npm init -y >/dev/null
+          npm i @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8
+          npx cap init SlimStory com.slimstory.app --web-dir www
+          npx cap add android
+      - name: Разрешения, значок, версия
+        working-directory: cap/android
+        run: |
+          M=app/src/main/AndroidManifest.xml
+          sed -i 's#<application#<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application#' $M
+          R=app/src/main/res
+          rm -rf $R/mipmap-anydpi-v26
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            n=${d%%:*}; s=${d##*:}
+            convert ../www/icons/icon-512.png -resize ${s}x${s} $R/mipmap-$n/ic_launcher.png
+            cp $R/mipmap-$n/ic_launcher.png $R/mipmap-$n/ic_launcher_round.png
+            convert ../www/icons/maskable-512.png -resize $((s*9/4))x$((s*9/4)) $R/mipmap-$n/ic_launcher_foreground.png
+          done
+          sed -i "s/versionCode [0-9]*/versionCode $CODE/; s/versionName \"[^\"]*\"/versionName \"$VER\"/" app/build.gradle
+          grep -n "versionCode\|versionName\|applicationId" app/build.gradle
+      - name: Сборка
+        working-directory: cap/android
+        run: |
+          ./gradlew assembleRelease --no-daemon
+          ls -la app/build/outputs/apk/release/
+          cp app/build/outputs/apk/release/app-release-unsigned.apk ../../SlimStory-$VER-unsigned.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SlimStory-${{ env.VER }}-unsigned
+          path: SlimStory-*-unsigned.apk
