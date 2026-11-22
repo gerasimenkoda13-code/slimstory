@@ -1,7 +1,29 @@
 'use strict';
 // ---------- помощники ----------
 const $ = s => document.querySelector(s);
-const I = n => !n ? 'icons/pack.svg' : (typeof IMG !== 'undefined' && IMG[n]) || ('img/' + n + '.webp');
+// картинка по ключу (img/imgmap.js, imgcat.js); если ключа нет — подбираем по названию продукта из библиотеки акварелей
+const IMGSTOP = new Set(['в', 'с', 'из', 'для', 'на', 'и', 'без', 'со', 'по', 'из']);
+const imgToks = s => String(s).toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, ' ').trim().split(' ').filter(w => w && !IMGSTOP.has(w) && !/^\d+$/.test(w)).map(w => w.replace(/ец$/, 'ц').replace(/(ыми|ими|ого|его|ому|ему|ая|яя|ое|ее|ый|ий|ой|ые|ие|ых|их|ом|ем|ам|ям|ов|ев|ы|и|а|я|у|ю|е|о|ь)$/, '').slice(0, 6));
+let IMGIDX = null; const IMGMEM = {};
+function imgByName(nm) {
+  if (typeof IMGK === 'undefined' || !nm) return '';
+  if (nm in IMGMEM) return IMGMEM[nm];
+  if (!IMGIDX) {
+    const pr = {'М': 0, 'Ф': 1, 'О': 1, 'Д': 2, 'Т': 3}; IMGIDX = [];
+    Object.keys(IMGK).forEach(k => { const i = k.indexOf('_'); if (i < 0) return; const t = imgToks(k.slice(i + 1)); if (t.length) IMGIDX.push({t, s: new Set(t), p: IMGK[k], r: pr[k[0]] ?? 4}); });
+    IMGIDX.sort((a, b) => a.r - b.r);
+  }
+  const t = imgToks(nm), ts = new Set(t); let best = null, bs = 0, res = '';
+  if (t.length) {
+    IMGIDX.forEach(e => { if (e.t.every(x => ts.has(x))) { const sc = e.t.length * 10 + (e.t[0] === t[0] ? 3 : 0); if (sc > bs) { bs = sc; best = e; } } });
+    if (best) res = best.p;
+  }
+  return IMGMEM[nm] = res;
+}
+const I = (n, nm) => {
+  if (n) { const m = (typeof IMG !== 'undefined' && IMG[n]) || (typeof IMGK !== 'undefined' && IMGK[n]); if (m) return m; if (!nm) return 'img/' + n + '.webp'; }
+  return (nm && imgByName(nm)) || (n ? 'img/' + n + '.webp' : 'icons/pack.svg');
+};
 const N = x => Math.round(x).toLocaleString('ru-RU');
 const W1 = x => (+x).toFixed(1).replace('.', ',');
 const D1 = x => (Math.round(x * 10) / 10).toLocaleString('ru-RU');
@@ -163,7 +185,7 @@ function trRow(kind) {
   const cells = def.map((pid, i) => {
     if (i < eaten.length) {
       const x = eaten[i], more = i === 4 && eaten.length > 5 ? `<span class="more">+${eaten.length - 5}</span>` : '';
-      return `<button onclick="prodInfo('${x.m}',${x.j})" aria-label="${esc(x.e.n)}"><img src="${I(x.e.i)}" class="${popT === kind && i === eaten.length - 1 ? 'pop' : ''}" alt="${esc(x.e.n)}">${more}</button>`;
+      return `<button onclick="prodInfo('${x.m}',${x.j})" aria-label="${esc(x.e.n)}"><img src="${I(x.e.i, x.e.n)}" class="${popT === kind && i === eaten.length - 1 ? 'pop' : ''}" alt="${esc(x.e.n)}">${more}</button>`;
     }
     return `<button onclick="prodPick('${kind}')" aria-label="Добавить"><img src="${I(PD[pid].i + '_dim')}" alt=""></button>`;
   }).join('');
@@ -281,7 +303,7 @@ function prodOwnSave(kind) {
 }
 function prodInfo(m, j) {
   const e = day(sel).meals[m][j];
-  sheet(`<div class="sh"><img src="${I(e.i)}" alt=""><div><b>${esc(e.n)}</b><small>${N(e.g)} г · ${MEALS.find(x => x.id === m).n}</small></div></div>
+  sheet(`<div class="sh"><img src="${I(e.i, e.n)}" alt=""><div><b>${esc(e.n)}</b><small>${N(e.g)} г · ${MEALS.find(x => x.id === m).n}</small></div></div>
   <div class="tot">${totHTML(e)}</div><div style="display:flex;gap:10px;padding:18px 20px 0"><button class="btn w" onclick="day(sel).meals['${m}'].splice(${j},1);save();closeSheet();render(true)">Убрать</button><button class="btn" onclick="closeSheet()">Готово</button></div>`);
 }
 
@@ -316,13 +338,13 @@ function scrAdd(m) {
   <button class="rowlink" onclick="go('#/cafe/${M.id}')"><span class="ci">${IC.fork}</span><b>Кафе и рестораны</b><span>кафе рядом</span>${IC.chev}</button>
   <div class="tabs">${tabs.map((t, i) => `<button class="tab ${i === addTab ? 'on' : ''}" onclick="addTab=${i};addQ='';render(true)">${t}</button>`).join('')}</div>
   <div class="sum">Добавлено ${M.v}<span>${N(s.k)} ккал</span></div>
-  <div class="added">${L.map((e, j) => `<div>${e.i ? `<img src="${I(e.i)}" alt="">` : ''}${esc(e.n)} · ${N(e.k)}<button onclick="delE('${M.id}',${j})" aria-label="Убрать">${IC.x()}</button></div>`).join('')}</div>
+  <div class="added">${L.map((e, j) => `<div>${(e.i || imgByName(e.n)) ? `<img src="${I(e.i, e.n)}" alt="">` : ''}${esc(e.n)} · ${N(e.k)}<button onclick="delE('${M.id}',${j})" aria-label="Убрать">${IC.x()}</button></div>`).join('')}</div>
   <div id="fl">${foodList(M.id)}</div></div>
   <div class="fadeb"></div><div class="btns"><button class="btn" onclick="root('#/home')">Готово</button></div>`;
 }
 function foodTile(f, m) {
   const fav = S.favs.includes(f.id), src = f.brand === 'с упаковки' ? '<span class="src u">с упаковки</span>' : f.brand === 'изменено' ? '<span class="src e">изменено</span>' : '';
-  return `<div class="tile" onclick="qtySheet('${f.id}','${m}')"><div class="cp">${src}<img src="${I(f.i)}" alt=""><button class="heart" onclick="event.stopPropagation();favF('${f.id}')" aria-label="Избранное">${IC.heart(fav)}</button></div><b>${esc(f.n)}</b><small>${f.mk ? `<span class="mk">${esc(f.mk)}</span> · ` : ''}${f.pn} · ${f.por} г</small><div class="tk"><span>${N(f.k * f.por / 100)} ккал</span><span class="pbtn">${IC.plus()}</span></div></div>`;
+  return `<div class="tile" onclick="qtySheet('${f.id}','${m}')"><div class="cp">${src}<img src="${I(f.i, f.n)}" alt=""><button class="heart" onclick="event.stopPropagation();favF('${f.id}')" aria-label="Избранное">${IC.heart(fav)}</button></div><b>${esc(f.n)}</b><small>${f.mk ? `<span class="mk">${esc(f.mk)}</span> · ` : ''}${f.pn} · ${f.por} г</small><div class="tk"><span>${N(f.k * f.por / 100)} ккал</span><span class="pbtn">${IC.plus()}</span></div></div>`;
 }
 function foodList(m) {
   const qq = addQ.trim().toLowerCase();
@@ -360,7 +382,7 @@ function drawQty() {
     ? `<div style="display:flex;justify-content:center;margin-top:18px"><div class="step"><button onclick="QS.por=Math.max(.5,QS.por-.5);drawQty()">−</button><b style="font-size:40px;min-width:70px">${D1(QS.por)}</b><button onclick="QS.por+=.5;drawQty()">+</button></div></div><div class="muted" style="text-align:center;margin-top:6px">${f.pn} = ${f.por} г</div>`
     : `<div class="big-in"><input id="gin" type="number" inputmode="numeric" value="${Math.round(g)}" oninput="QS.g=Math.max(0,+this.value||0);updQty()"><span>г</span></div><div class="muted" style="text-align:center;margin-top:6px" id="qpor">≈ ${D1(g / f.por)} порции</div>
        <div class="presets">${[100, 150, 200, f.por].filter((v, i, a) => a.indexOf(v) === i).map(v => `<button class="pill ${Math.round(g) === v ? 'on' : ''}" onclick="QS.g=${v};drawQty()">${v} г</button>`).join('')}</div>`;
-  sheet(`<div class="sh"><img src="${I(f.i)}" alt=""><div><b>${esc(f.n)}</b><small>${f.mk ? esc(f.mk) + ' · ' : ''}${f.pn} = ${f.por} г · ${N(f.k)} ккал в 100 г${QS.note ? ' · ' + QS.note : ''}</small></div></div>
+  sheet(`<div class="sh"><img src="${I(f.i, f.n)}" alt=""><div><b>${esc(f.n)}</b><small>${f.mk ? esc(f.mk) + ' · ' : ''}${f.pn} = ${f.por} г · ${N(f.k)} ккал в 100 г${QS.note ? ' · ' + QS.note : ''}</small></div></div>
   <div style="padding:14px 20px 0"><div class="seg"><button class="${QS.mode === 'p' ? 'on' : ''}" onclick="QS.mode='p';drawQty()">Порции</button><button class="${QS.mode === 'g' ? 'on' : ''}" onclick="QS.mode='g';QS.g=Math.round(${g});drawQty()">Граммы</button></div></div>
   ${body}<div class="tot" id="qtot">${totHTML({k: f.k * r, p: f.p * r, f: f.f * r, c: f.c * r})}</div>
   <div style="padding:18px 20px 0"><button class="btn" onclick="addQty()">Добавить ${M.v}</button></div>`);
