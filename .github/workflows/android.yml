@@ -46,7 +46,10 @@ jobs:
           ./gradlew assembleRelease --no-daemon
           ls -la app/build/outputs/apk/release/
           cp app/build/outputs/apk/release/app-release-unsigned.apk ../../SlimStory-$VER-unsigned.apk
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1); cp $BT/lib/apksigner.jar ../../; echo "$BT"
       - uses: actions/upload-artifact@v4
         with:
           name: SlimStory-${{ env.VER }}-unsigned
-          path: SlimStory-*-unsigned.apk
+          path: |
+            SlimStory-*-unsigned.apk
+            apksigner.jar
