@@ -69,7 +69,7 @@ function fresh() {
 }
 function blank() { return {meals: {b: [], l: [], d: [], s: []}, ml: 0}; }
 function load() { try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) { S = null; } if (!S || !S.days) S = fresh(); }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} if (typeof Cloud !== 'undefined') Cloud.queue(); }
 function day(k) { return S.days[k] || (S.days[k] = blank()); }
 function entryF(f, g, extra) { const r = g / 100; return Object.assign({n: f.mk ? `${f.n} «${f.mk}»` : f.n, i: f.i, g, k: f.k * r, p: f.p * r, f: f.f * r, c: f.c * r}, f.kind ? {kind: f.kind, pid: f.id} : {}, extra || {}); }
 function sumE(list) { return list.reduce((a, e) => ({k: a.k + e.k, p: a.p + e.p, f: a.f + e.f, c: a.c + e.c}), {k: 0, p: 0, f: 0, c: 0}); }
@@ -690,7 +690,7 @@ function scrMe() {
   const items = [['Цели и норма', `${G.w < last.w ? 'Похудеть' : 'Держать вес'} · ${N(G.k)} ккал · Б ${G.p} Ж ${G.f} У ${G.c}`, '#/settings'], ['Параметры тела', bodyDate().replace(/^./, c => c.toUpperCase()), '#/body'], ['Предпочтения в еде', S.prefs.type.join(', '), '#/prefs'], ['Моя диета', dt ? `${dt.n} · день ${S.diet.day} из ${S.diet.len * 7}` : 'Не выбрана', dt ? '#/diet/' + dt.id : '#/diets'], ['Настройки', 'приёмы пищи, трекеры, синхронизация', '#/settings']];
   return `<div class="scr anim">${topb('Я')}
   <div class="card" style="display:flex;align-items:center;gap:14px"><button onclick="avaSheet()" style="position:relative" aria-label="Поменять фото">${avaHTML(68, 26)}<span style="position:absolute;right:-2px;bottom:-2px;width:24px;height:24px;border-radius:50%;background:#7c5cff;display:flex;align-items:center;justify-content:center;border:2px solid #fff">${IC.cam('#fff', 13)}</span></button>
-  <div style="flex:1;min-width:0"><div style="font-size:22px;font-weight:900">${esc(S.name)}</div><div class="muted" style="font-size:14px">${esc(S.login)}</div></div><button onclick="nameSheet()" aria-label="Изменить имя">${IC.pen()}</button></div>
+  <div style="flex:1;min-width:0"><div style="font-size:22px;font-weight:900">${esc(S.name)}</div><div class="muted" style="font-size:14px">${typeof Cloud !== 'undefined' && Cloud.email() ? esc(Cloud.email()) : '<a href="start.html?s=login" style="color:var(--pri);font-weight:800;text-decoration:none">Войти в аккаунт</a>'}</div></div><button onclick="nameSheet()" aria-label="Изменить имя">${IC.pen()}</button></div>
   <div class="sec">Сегодня</div>
   <div class="card"><div style="display:flex;justify-content:space-between;font-weight:800"><span>Калории</span><span><b class="v">${N(t.k)}</b> <span class="muted">из ${N(G.k)} ккал</span></span></div><div class="bar" style="margin-top:8px"><i style="width:${Math.min(100, t.k / G.k * 100)}%"></i></div>
   <div style="display:flex;justify-content:space-between;font-weight:800;margin-top:14px"><span>Вода</span><span><b class="v">${L1(d.ml || 0)}</b> <span class="muted">из ${L1(S.waterGoal)} л</span></span></div><div class="bar" style="margin-top:8px"><i style="width:${Math.min(100, (d.ml || 0) / S.waterGoal * 100)}%;background:linear-gradient(90deg,#6db7ff,#4fd1b0)"></i></div></div>
@@ -726,6 +726,7 @@ function scrSettings() {
   <div class="sec">Приёмы пищи</div><div class="card" style="padding-top:2px;padding-bottom:2px">${MEALS.map(m => `<div class="row"><span style="display:flex;align-items:center;gap:10px"><span class="ico" style="width:34px;height:34px;background:${m.bg}">${mic(m, 20)}</span>${m.n}</span>${sw(S.mealsOn[m.id], `S.mealsOn['${m.id}']=S.mealsOn['${m.id}']?0:1;save();render(true)`)}</div>`).join('')}</div>
   <div class="sec">Трекеры</div><div class="card" style="padding-top:2px;padding-bottom:2px"><div class="row"><span>Стакан воды</span><span class="v">${GL()} мл</span></div><button class="row" onclick="numSheetW()"><span>Норма воды</span><span class="v">${L1(S.waterGoal)} л</span></button><div class="row"><span>Овощи</span><span class="v">5 в день</span></div><div class="row"><span>Фрукты</span><span class="v">5 в день</span></div></div>
   <div class="sec">Синхронизация</div><div class="card" style="padding-top:2px;padding-bottom:2px"><div class="row"><div>Apple Здоровье<small>шаги и активность в калориях</small></div>${sw(S.sync.apple, `S.sync.apple=S.sync.apple?0:1;save();render(true);toast('Заработает в приложении')`)}</div><div class="row"><div>Health Connect (Android)<small>шаги и активность в калориях</small></div>${sw(S.sync.android, `S.sync.android=S.sync.android?0:1;save();render(true);toast('Заработает в приложении')`)}</div></div>
+  ${typeof Cloud !== 'undefined' && Cloud.email() ? `<div class="sec">Аккаунт</div><div class="card" style="padding-top:2px;padding-bottom:2px"><div class="row"><span>Почта</span><span class="v">${esc(Cloud.email())}</span></div><button class="row" onclick="outSheet()"><span style="color:#c23a64">Выйти</span></button></div>` : `<div class="sec">Аккаунт</div><div class="card" style="padding-top:2px;padding-bottom:2px"><button class="row" onclick="location.href='start.html?s=reg'"><span>Создать аккаунт</span></button><button class="row" onclick="location.href='start.html?s=login'"><span>Войти</span></button></div>`}
   <div style="padding:22px 20px 0"><button class="btn w" onclick="resetAll()">Стереть все данные</button></div>
   <div class="muted" style="font-size:12px;text-align:center;padding:16px 20px 0">Данные о товарах: Open Food Facts, лицензия ODbL</div></div>`;
 }
@@ -737,6 +738,8 @@ function numSheet(key, title, unit, step) {
   $('#nsb').onclick = () => { S.goal[key] = v; save(); closeSheet(); render(true); };
 }
 function numSheetW() { let v = S.waterGoal; window._nw = d => { v = Math.max(500, v + d); $('#nwv').textContent = L1(v); }; sheet(`<div class="sh"><div><b>Норма воды</b></div></div><div style="display:flex;justify-content:center;margin-top:20px"><div class="step"><button onclick="_nw(-100)">−</button><b id="nwv" style="font-size:40px;min-width:110px">${L1(v)}</b><button onclick="_nw(100)">+</button></div></div><div class="muted" style="text-align:center">литра</div><div style="padding:18px 20px 0"><button class="btn" id="nwb">Сохранить</button></div>`); $('#nwb').onclick = () => { S.waterGoal = v; save(); closeSheet(); render(true); }; }
+function outSheet() { sheet(`<div class="sh"><div><b>Выйти из аккаунта?</b><small>Данные останутся в облаке, с этого телефона они сотрутся</small></div></div><div style="display:flex;gap:10px;padding:18px 20px 0"><button class="btn w" onclick="closeSheet()">Отмена</button><button class="btn" onclick="logOut()">Выйти</button></div>`); }
+async function logOut() { try { await Cloud.signOut(); } catch (e) { toast('Нет интернета, попробуй позже'); return; } try { localStorage.removeItem(KEY); localStorage.removeItem('ss_start'); localStorage.removeItem('ss_cloud_t'); } catch (e) {} location.replace('start.html?s=login'); }
 function resetAll() { sheet(`<div class="sh"><div><b>Стереть все записи?</b><small>Записи о еде, воде и весе удалятся</small></div></div><div style="display:flex;gap:10px;padding:18px 20px 0"><button class="btn w" onclick="closeSheet()">Отмена</button><button class="btn" onclick="try{localStorage.removeItem(KEY)}catch(e){};S=fresh();closeSheet();root('#/home');render()">Стереть</button></div>`); }
 
 const BODY = ['Талия', 'Бёдра', 'Грудь', 'Обхват бедра', 'Обхват руки', 'Процент жира'];
@@ -968,4 +971,5 @@ else {
   try { const P = JSON.parse(localStorage.getItem('ss_start') || 'null'); if (P && P.w && !P.water && !S.waterSet) { S.waterGoal = Math.min(3500, Math.max(1500, Math.round((30 * P.w + ({run: 300, fire: 500}[P.act] || 0)) / 100) * 100)); S.waterSet = 1; save(); } } catch (e) {}
   render();
 }
+if (typeof Cloud !== 'undefined' && HAS) setTimeout(() => Cloud.init().then(() => Cloud.onUser(u => { if (u) { Cloud.queue(); if (route()[0] === 'me' || route()[0] === 'settings') render(true); } })).catch(() => {}), 400);
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
