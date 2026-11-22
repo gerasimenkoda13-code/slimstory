@@ -57,7 +57,7 @@ function fresh() {
   // профиль из анкеты (start.html)
   let P = null; try { P = JSON.parse(localStorage.getItem('ss_start') || 'null'); } catch (e) {}
   P = P || {};
-  const w = +P.w || 70, tw = P.goal === 'down' ? (+P.tw || w) : w, n = P.norm || {kc: 1800, p: 110, f: 60, c: 200};
+  const w = +P.w || 70, tw = P.goal === 'down' || P.goal === 'up' ? (+P.tw || w) : w, n = P.norm || {kc: 1800, p: 110, f: 60, c: 200};
   return {
     name: P.name || 'Я', login: '', ava: {t: 'l'},
     goal: {k: n.kc, p: n.p, f: n.f, c: n.c, w: tw, start: w},
@@ -557,7 +557,7 @@ function swapSheet(id, j) {
   const d = DIETS.find(x => x.id === id), plan = dietPlan(d, dietDay).map(x => Object.assign({}, x)), cur = plan[j], ci = itemInfo(cur.ref, cur.q), qOf = ref => ref.startsWith('r:') ? (cur.q || 1) : 1;
   const pool = (d.pool[cur.m] || []).map(x => x.includes(':') ? x : 'r:' + x);
   const alts = [...new Set(pool.concat(['p:banana', 'p:apple', 'p:orange', 'r:r_kefir', 'r:r_capr'].filter(x => !x.startsWith('r:') || recOk(recipe(x.slice(2)), d.rules))))].filter(r => r !== cur.ref), myA = S.myRecipes.map(r => 'r:' + r.id).filter(r => r !== cur.ref);
-  const swRow = ref => { const x = itemInfo(ref, qOf(ref)), df = x.k - ci.k; return `<button class="ing" style="width:100%;text-align:left" onclick="_sw('${ref}')">${pic(x.i, x.n, 40)}<div class="nm"><b>${esc(x.n)}</b><small>${N(x.g)} г · ${N(x.k)} ккал</small></div><span class="d ${df > 0 ? 'up' : ''}">${df > 0 ? '+' : '−'}${N(Math.abs(df))}</span></button>`; };
+  const swRow = ref => { const x = itemInfo(ref, qOf(ref)), df = x.k - ci.k; return `<button class="ing" style="width:100%;text-align:left" onclick="_sw('${ref}')">${pic(x.i, x.n, 40)}<div class="nm"><b>${esc(x.n)}</b><small>${N(x.g)} г · ${N(x.k)} ккал</small></div><span class="d ${(G.w > G.start ? df < 0 : df > 0) ? 'up' : ''}">${df > 0 ? '+' : '−'}${N(Math.abs(df))}</span></button>`; };
   window._sw = ref => { plan[j] = {m: cur.m, ref, extra: cur.extra, q: qOf(ref)}; setPlan(d, dietDay, plan); closeSheet(); render(true); };
   window._swDel = () => { plan.splice(j, 1); setPlan(d, dietDay, plan); closeSheet(); render(true); };
   sheet(`<div class="sh"><div><b>Заменить «${esc(ci.n)}»</b><small>сейчас ${N(ci.k)} ккал</small></div></div>
@@ -663,8 +663,8 @@ function scrWeight() {
   const span = [7, 31, 92, 366][wSeg], from = dk(addD(new Date(), -span));
   let P = Wt.filter(w => w.d >= from); if (P.length < 2) P = Wt.slice(-2);
   const monthAgo = Wt.filter(w => w.d <= dk(addD(new Date(), -28))).pop() || Wt[0];
-  const ch = last.w - monthAgo.w, prog = Math.max(0, Math.min(1, (G.start - last.w) / (G.start - G.w)));
-  const X0 = 34, X1 = 326, Y0 = 14, Y1 = 176, lo = Math.min(G.w - 1, ...P.map(p => p.w)) , hi = Math.max(...P.map(p => p.w)) + 1;
+  const ch = last.w - monthAgo.w, up = G.w > G.start, prog = G.w === G.start ? 1 : Math.max(0, Math.min(1, (G.start - last.w) / (G.start - G.w)));
+  const X0 = 34, X1 = 326, Y0 = 14, Y1 = 176, lo = Math.min(G.w - 1, ...P.map(p => p.w)) , hi = Math.max(G.w, ...P.map(p => p.w)) + 1;
   const t0 = kd(P[0].d).getTime(), t1 = kd(P[P.length - 1].d).getTime() || t0 + 1;
   const x = d => X0 + (kd(d).getTime() - t0) / Math.max(1, t1 - t0) * (X1 - X0), y = v => Y0 + (hi - v) / (hi - lo) * (Y1 - Y0);
   const pts = P.map(p => `${x(p.d).toFixed(1)},${y(p.w).toFixed(1)}`).join(' ');
@@ -677,10 +677,10 @@ function scrWeight() {
   ${P.map(p => `<circle cx="${x(p.d)}" cy="${y(p.w)}" r="4" fill="#7c5cff" stroke="#fff" stroke-width="2"/>`).join('')}
   <text x="${x(last.d)}" y="${y(last.w) - 12}" text-anchor="end" font-size="12" font-weight="900" fill="#2a2340">${W1(last.w)}</text>
   <text x="${X0}" y="${Y1 + 18}" font-size="11" fill="#a49dbb" font-weight="700">${lbl(P[0].d)}</text><text x="${X1}" y="${Y1 + 18}" text-anchor="end" font-size="11" fill="#a49dbb" font-weight="700">${lbl(P[P.length - 1].d)}</text></svg>`;
-  const H = Wt.slice(-6).reverse().map((w, i, a) => { const prev = a[i + 1]; const df = prev ? w.w - prev.w : 0; return `<div class="hist"><div>${W1(w.w)} кг<br><small>${dTitle(w.d)}</small></div>${prev ? `<span class="d ${df > 0 ? 'up' : ''}">${df > 0 ? '+' : df < 0 ? '−' : ''}${D1(Math.abs(df))}</span>` : ''}</div>`; }).join('');
+  const H = Wt.slice(-6).reverse().map((w, i, a) => { const prev = a[i + 1]; const df = prev ? w.w - prev.w : 0; return `<div class="hist"><div>${W1(w.w)} кг<br><small>${dTitle(w.d)}</small></div>${prev ? `<span class="d ${(G.w > G.start ? df < 0 : df > 0) ? 'up' : ''}">${df > 0 ? '+' : df < 0 ? '−' : ''}${D1(Math.abs(df))}</span>` : ''}</div>`; }).join('');
   return `<div class="scr anim" style="padding-bottom:110px">${topb('Вес')}
-  <div class="card"><div style="display:flex;align-items:center;gap:14px"><img src="${I('scale')}" style="width:70px;height:70px;object-fit:contain" alt=""><div><div style="font-size:40px;font-weight:900;line-height:1">${W1(last.w)} <small style="font-size:18px;color:#8a83a3">кг</small></div><span class="ok" style="margin-top:6px;${ch > 0 ? 'background:#fff1dc;color:#c27a12' : ''}">${ch > 0 ? '+' : '−'}${D1(Math.abs(ch))} кг за месяц</span></div></div>
-  <div class="bar" style="margin-top:14px"><i style="width:${prog * 100}%"></i></div><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;color:#8a83a3;margin-top:6px"><span>Старт ${D1(G.start)}</span><span>Осталось ${D1(Math.max(0, last.w - G.w))} кг</span><span>Цель ${D1(G.w)}</span></div></div>
+  <div class="card"><div style="display:flex;align-items:center;gap:14px"><img src="${I('scale')}" style="width:70px;height:70px;object-fit:contain" alt=""><div><div style="font-size:40px;font-weight:900;line-height:1">${W1(last.w)} <small style="font-size:18px;color:#8a83a3">кг</small></div><span class="ok" style="margin-top:6px;${(up ? ch < 0 : ch > 0) ? 'background:#fff1dc;color:#c27a12' : ''}">${ch > 0 ? '+' : '−'}${D1(Math.abs(ch))} кг за месяц</span></div></div>
+  <div class="bar" style="margin-top:14px"><i style="width:${prog * 100}%"></i></div><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;color:#8a83a3;margin-top:6px"><span>Старт ${D1(G.start)}</span><span>Осталось ${D1(Math.max(0, up ? G.w - last.w : last.w - G.w))} кг</span><span>Цель ${D1(G.w)}</span></div></div>
   <div class="seg2">${['Неделя', 'Месяц', '3 мес.', 'Год'].map((t, i) => `<button class="${i === wSeg ? 'on' : ''}" onclick="wSeg=${i};render(true)">${t}</button>`).join('')}</div>
   <div class="card">${svg}</div>
   <div class="sec">История</div><div class="card" style="padding-top:2px;padding-bottom:2px">${H}</div></div>
@@ -707,7 +707,7 @@ function scrMe() {
   <div class="card"><div style="display:flex;justify-content:space-between;font-weight:800"><span>Калории</span><span><b class="v">${N(t.k)}</b> <span class="muted">из ${N(G.k)} ккал</span></span></div><div class="bar" style="margin-top:8px"><i style="width:${Math.min(100, t.k / G.k * 100)}%"></i></div>
   <div style="display:flex;justify-content:space-between;font-weight:800;margin-top:14px"><span>Вода</span><span><b class="v">${L1(d.ml || 0)}</b> <span class="muted">из ${L1(S.waterGoal)} л</span></span></div><div class="bar" style="margin-top:8px"><i style="width:${Math.min(100, (d.ml || 0) / S.waterGoal * 100)}%;background:linear-gradient(90deg,#6db7ff,#4fd1b0)"></i></div></div>
   <div class="sec">Вес и цель<button onclick="go('#/weight')">График</button></div>
-  <button class="card" style="display:block;width:calc(100% - 40px);text-align:left" onclick="go('#/weight')"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><small class="muted">Сейчас</small><div style="font-size:26px;font-weight:900">${W1(last.w)} кг</div></div><div style="text-align:center"><span class="ok">−${D1(G.start - last.w)} кг</span><small class="muted" style="display:block;font-size:12px;margin-top:4px">с начала</small></div><div style="text-align:right"><small class="muted">Цель</small><div style="font-size:26px;font-weight:900">${D1(G.w)} кг</div></div></div>
+  <button class="card" style="display:block;width:calc(100% - 40px);text-align:left" onclick="go('#/weight')"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><small class="muted">Сейчас</small><div style="font-size:26px;font-weight:900">${W1(last.w)} кг</div></div><div style="text-align:center"><span class="ok">${last.w > G.start ? '+' : '−'}${D1(Math.abs(G.start - last.w))} кг</span><small class="muted" style="display:block;font-size:12px;margin-top:4px">с начала</small></div><div style="text-align:right"><small class="muted">Цель</small><div style="font-size:26px;font-weight:900">${D1(G.w)} кг</div></div></div>
   <div class="bar" style="margin-top:12px"><i style="width:${Math.max(0, Math.min(1, (G.start - last.w) / (G.start - G.w))) * 100}%"></i></div></button>
   <div class="sec">Моё</div>
   <div class="card" style="padding-top:2px;padding-bottom:2px">${items.map(([a, b, h]) => `<button class="row" onclick="go('${h}')"><div style="min-width:0">${a}<small>${esc(b)}</small></div>${IC.chev}</button>`).join('')}</div></div>`;
@@ -909,7 +909,7 @@ if (!HAS) location.replace('start.html');
 else {
   load(); sel = TODAY;
   // анкету прошли заново: обновить норму и имя
-  try { const P = JSON.parse(localStorage.getItem('ss_start') || 'null'); if (P && P.norm && P.at && P.at !== S.startAt) { S.name = P.name || S.name; S.goal.k = P.norm.kc; S.goal.p = P.norm.p; S.goal.f = P.norm.f; S.goal.c = P.norm.c; if (P.goal === 'down') S.goal.w = +P.tw; if (P.water) S.waterGoal = P.water; S.startAt = P.at; save(); } } catch (e) {}
+  try { const P = JSON.parse(localStorage.getItem('ss_start') || 'null'); if (P && P.norm && P.at && P.at !== S.startAt) { S.name = P.name || S.name; S.goal.k = P.norm.kc; S.goal.p = P.norm.p; S.goal.f = P.norm.f; S.goal.c = P.norm.c; if (P.goal === 'down' || P.goal === 'up') S.goal.w = +P.tw; if (P.water) S.waterGoal = P.water; S.startAt = P.at; save(); } } catch (e) {}
   // кто прошёл анкету до появления нормы воды: посчитать по весу
   try { const P = JSON.parse(localStorage.getItem('ss_start') || 'null'); if (P && P.w && !P.water && !S.waterSet) { S.waterGoal = Math.min(3500, Math.max(1500, Math.round((30 * P.w + ({run: 300, fire: 500}[P.act] || 0)) / 100) * 100)); S.waterSet = 1; save(); } } catch (e) {}
   render();

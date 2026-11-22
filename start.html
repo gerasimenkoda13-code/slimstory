@@ -155,7 +155,8 @@ let D={name:'',goal:'',sex:'',age:25,h:165,w:70,tw:60,act:'',allergy:[]};
 try{const s=JSON.parse(localStorage.getItem('ss_start')||'null');if(s)D=Object.assign(D,s)}catch(e){}
 const save=()=>{try{localStorage.setItem('ss_start',JSON.stringify(D))}catch(e){}};
 
-/* расчёт нормы: Миффлин — Сан Жеор, ×активность, −500, порог 1500 ж / 1700 м */
+/* расчёт нормы: Миффлин — Сан Жеор, ×активность.
+   Похудеть: −500, порог 1500 ж / 1700 м. Набрать: +300 (≈0,3 кг в неделю), белок 1,8 г на кг. */
 function norm(){
   const bmr=10*D.w+6.25*D.h-5*D.age+(D.sex==='m'?5:-161);
   const k={sofa:1.2,walk:1.375,run:1.55,fire:1.725}[D.act]||1.2;
@@ -166,10 +167,12 @@ function norm(){
     kc=Math.max(tdee-500,floor);
     if(kc>tdee-200) kc=Math.max(tdee-200,hard);
   }
+  if(D.goal==='up') kc=tdee+300;
   kc=Math.round(kc/10)*10;
-  const deficit=Math.max(tdee-kc,0);
-  const kgWeek=D.goal==='down'?Math.max(deficit*7/7700,0.1):0;
-  const weeks=D.goal==='down'?Math.ceil(Math.max(D.w-D.tw,0)/kgWeek):0;
+  const diff=Math.abs(tdee-kc);
+  const kgWeek=D.goal==='down'||D.goal==='up'?Math.max(diff*7/7700,0.1):0;
+  const weeks=D.goal==='down'?Math.ceil(Math.max(D.w-D.tw,0)/kgWeek):D.goal==='up'?Math.ceil(Math.max(D.tw-D.w,0)/kgWeek):0;
+  if(D.goal==='up'){ const p=Math.min(Math.round(1.8*D.w),Math.round(kc*.3/4)), f=Math.round(kc*.28/9); return {kc,p,f,c:Math.round((kc-p*4-f*9)/4),weeks}; }
   return {kc,p:Math.round(kc*.25/4),f:Math.round(kc*.30/9),c:Math.round(kc*.45/4),weeks};
 }
 
@@ -183,8 +186,8 @@ function qtop(i){
   const total=Q.length+1;
   return `<div class="qtop"><button class="back" onclick="prev()">${ICON.back}</button><div class="prog"><i style="width:${Math.round((i+1)/total*100)}%"></i></div></div>`;
 }
-function prev(){ if(typeof step==='number'&&step>0) go(step-1); else go('s2') }
-function next(){ save(); const i=Q.indexOf(Q[step]); if(D.goal!=='down'&&Q[i+1]==='tw') go(i+2); else go(i+1) }
+function prev(){ if(typeof step==='number'&&step>0) go(D.goal==='keep'&&Q[step-1]==='tw'?step-2:step-1); else go('s2') }
+function next(){ save(); const i=Q.indexOf(Q[step]); if(D.goal==='keep'&&Q[i+1]==='tw') go(i+2); else go(i+1) }
 
 function numScr(i,key,q,unit,min,max,hint){
   return `<div class="scr">${qtop(i)}<div class="q">${q}</div>
@@ -237,7 +240,7 @@ function render(){
       <div class="big"><b>${r.kc.toLocaleString('ru-RU')}</b><small>ккал в день</small></div>
       <div class="row"><div><b>${r.p} г</b><small>белки</small></div><div><b>${r.f} г</b><small>жиры</small></div><div><b>${r.c} г</b><small>углеводы</small></div></div>
       <div class="goal wt"><span class="oi">${ICON.drop}</span><span><b>${(water()/1000).toLocaleString('ru-RU')} л воды в день</b><small>8 стаканов по ${Math.round(water()/80)*10} мл</small></span></div>
-      ${D.goal==='down'?`<div class="goal"><span class="oi">${ICON.flag}</span><span><b>${D.tw} кг к ${date}</b><small>примерно ${r.weeks} нед.</small></span></div>`:''}
+      ${(D.goal==='down'||D.goal==='up')&&D.tw!==D.w?`<div class="goal"><span class="oi">${ICON.flag}</span><span><b>${D.tw} кг к ${date}</b><small>примерно ${r.weeks} нед.</small></span></div>`:''}
       <div class="note">Это примерный расчёт. При болезнях посоветуйся с врачом.</div>
       <div class="sp"></div><button class="btn" onclick="finish()">Начать</button></div>`;
   }else if(step==='reg'){
@@ -282,8 +285,9 @@ function render(){
     if(k==='age') h=numScr(step,'age','Сколько тебе лет?','лет',14,99);
     if(k==='h') h=numScr(step,'h','Твой рост','см',120,230);
     if(k==='w') h=numScr(step,'w','Твой вес сейчас','кг',35,250);
+    if(k==='tw'){ if(D.goal==='up'&&D.tw<=D.w) D.tw=D.w+5; if(D.goal==='down'&&D.tw>=D.w) D.tw=Math.max(35,D.w-5); }
     if(k==='tw') h=numScr(step,'tw','Какой вес хочешь?','кг',35,250,
-      D.w>D.tw?`<div class="hint">−${D.w-D.tw} кг</div>`:'');
+      D.w>D.tw?`<div class="hint">−${D.w-D.tw} кг</div>`:D.tw>D.w?`<div class="hint">+${D.tw-D.w} кг</div>`:'');
     if(k==='act') h=`<div class="scr">${qtop(step)}<div class="q">Сколько ты двигаешься?</div><div class="body">
       ${opt('act','sofa','sofa','Почти не двигаюсь','сижу дома или в офисе')}
       ${opt('act','walk','walk','Немного','1–2 тренировки в неделю')}
