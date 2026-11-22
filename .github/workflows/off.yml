@@ -1,0 +1,21 @@
+name: База товаров
+on:
+  workflow_dispatch:
+  push:
+    paths: ['tools/off_build.py', '.github/workflows/off.yml']
+  schedule:
+    - cron: '0 3 1 * *'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p data && python3 tools/off_build.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/off.json
+          git diff --cached --quiet || (git commit -m "Обновить базу товаров Open Food Facts" && git pull --rebase && git push)
