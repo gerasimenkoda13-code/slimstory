@@ -950,6 +950,8 @@ else {
   load(); sel = TODAY;
   // анкету прошли заново: обновить норму и имя
   try { const P = JSON.parse(localStorage.getItem('ss_start') || 'null'); if (P && P.norm && P.at && P.at !== S.startAt) { S.name = P.name || S.name; S.goal.k = P.norm.kc; S.goal.p = P.norm.p; S.goal.f = P.norm.f; S.goal.c = P.norm.c; if (P.goal === 'down') S.goal.w = +P.tw; if (P.water) S.waterGoal = P.water; S.startAt = P.at; save(); } } catch (e) {}
+  // кто прошёл анкету до появления нормы воды: посчитать по весу
+  try { const P = JSON.parse(localStorage.getItem('ss_start') || 'null'); if (P && P.w && !P.water && !S.waterSet) { S.waterGoal = Math.min(3500, Math.max(1500, Math.round((30 * P.w + ({run: 300, fire: 500}[P.act] || 0)) / 100) * 100)); S.waterSet = 1; save(); } } catch (e) {}
   render();
 }
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
