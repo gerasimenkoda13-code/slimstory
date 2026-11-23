@@ -7,7 +7,7 @@ TL = dict(zip('абвгдеёжзийклмнопрстуфхцчшщъыьэю�
 slug = lambda s: re.sub(r'[^a-z0-9]+', '-', ''.join(TL.get(c, c) for c in s.lower())).strip('-')
 m = json.loads(re.search(r'const IMG=(\{.*?\});', open(os.path.join(R, 'imgmap.js'), encoding='utf-8').read(), re.S).group(1))
 K2 = {}; made = 0
-for sub in ('blyuda', 'frukty_ovoshchi', 'magazin', 'tovary500'):
+for sub in ('blyuda', 'blyuda2', 'frukty_ovoshchi', 'magazin', 'tovary500'):
     for f in sorted(os.listdir(os.path.join(K, sub))):
         key = f[:-4]
         if key in m: K2[key] = m[key]; continue
